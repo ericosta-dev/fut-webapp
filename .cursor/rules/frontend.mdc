@@ -1,0 +1,810 @@
+---
+description: This is a new rule to frontend features
+alwaysApply: false
+---
+# Vue 3 + TypeScript Frontend - CursorRules
+
+## Project Context
+This is a Vue 3 + TypeScript frontend for a football/soccer community management application. It uses Vite, Pinia for state management, Vue Router, Tailwind CSS, and follows a feature-based architecture.
+
+## Code Style & Formatting
+
+### TypeScript Style
+- Use **ESLint** and **Prettier** for linting and formatting
+- Prefer `const` over `let`, avoid `var`
+- Use explicit types for function parameters and return values
+- Use type inference for simple variable declarations
+- Prefer interfaces over types for object shapes
+- Use enums for fixed sets of values
+
+### Import Organization
+```typescript
+// Vue core imports
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
+// Third-party imports
+import axios from 'axios'
+
+// Local feature imports
+import { useAuthStore } from '@/features/auth/stores/authStore'
+import type { User, Community } from '@/types'
+
+// Component imports
+import AppLayout from '@/components/layout/AppLayout.vue'
+```
+
+### Naming Conventions
+- **Components**: PascalCase (e.g., `UserProfile.vue`, `CommunityCard.vue`)
+- **Composables**: camelCase with `use` prefix (e.g., `useAuth.ts`, `useCommunities.ts`)
+- **Stores**: camelCase with `Store` suffix (e.g., `authStore.ts`, `communitiesStore.ts`)
+- **Types/Interfaces**: PascalCase (e.g., `User`, `Community`, `ApiResponse`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_BASE_URL`, `MAX_RETRIES`)
+- **Functions/Variables**: camelCase (e.g., `fetchUser`, `isLoading`)
+
+## Project Structure
+
+### Feature-Based Organization
+Each feature should be self-contained with its own API, stores, components, and types:
+
+```
+src/
+├── features/
+│   ├── auth/
+│   │   ├── api.ts              # API calls for auth
+│   │   ├── stores/
+│   │   │   └── authStore.ts    # Pinia store
+│   │   ├── composables/
+│   │   │   └── useAuth.ts      # Reusable composition logic
+│   │   ├── components/         # Feature-specific components
+│   │   │   └── LoginForm.vue
+│   │   └── types.ts            # Feature-specific types
+│   ├── communities/
+│   │   ├── api.ts
+│   │   ├── stores/
+│   │   ├── composables/
+│   │   ├── components/
+│   │   └── types.ts
+│   └── players/
+│       ├── api.ts
+│       ├── stores/
+│       ├── composables/
+│       ├── components/
+│       └── types.ts
+├── shared/
+│   ├── api/
+│   │   ├── client.ts           # Axios instance & interceptors
+│   │   └── index.ts
+│   ├── types/
+│   │   └── index.ts            # Shared types
+│   ├── utils/
+│   │   └── helpers.ts          # Utility functions
+│   └── constants/
+│       └── index.ts            # App-wide constants
+├── components/
+│   ├── ui/                     # Reusable UI components
+│   │   ├── Button.vue
+│   │   ├── Input.vue
+│   │   └── Card.vue
+│   └── layout/                 # Layout components
+│       ├── AppLayout.vue
+│       ├── Header.vue
+│       └── Sidebar.vue
+├── composables/                # Shared composables
+│   └── useDebounce.ts
+├── views/                      # Route views
+│   ├── HomeView.vue
+│   ├── DashboardView.vue
+│   └── LoginView.vue
+├── router/
+│   └── index.ts
+├── assets/
+│   └── main.css
+├── App.vue
+└── main.ts
+```
+
+## Vue 3 Composition API
+
+### Component Structure
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import type { User } from '@/types'
+
+// Props
+interface Props {
+  userId: string
+  isActive?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isActive: true
+})
+
+// Emits
+interface Emits {
+  (e: 'update', user: User): void
+  (e: 'delete', id: string): void
+}
+
+const emit = defineEmits<Emits>()
+
+// Composables
+const router = useRouter()
+
+// State
+const user = ref<User | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+// Computed
+const displayName = computed(() => {
+  return user.value?.nickname || user.value?.name || 'Unknown'
+})
+
+// Methods
+async function fetchUser() {
+  loading.value = true
+  error.value = null
+  try {
+    // Fetch logic
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'An error occurred'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleUpdate() {
+  if (user.value) {
+    emit('update', user.value)
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchUser()
+})
+
+// Expose (if needed for parent component access)
+defineExpose({
+  fetchUser
+})
+</script>
+
+<template>
+  <div class="user-profile">
+    <div v-if="loading">Loading...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else-if="user">
+      <h2>{{ displayName }}</h2>
+      <button @click="handleUpdate">Update</button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.user-profile {
+  padding: 1rem;
+}
+
+.error {
+  color: red;
+}
+</style>
+```
+
+### Component Guidelines
+- Always use `<script setup>` for cleaner syntax
+- Define types for props and emits
+- Group code logically: props → emits → composables → state → computed → methods → lifecycle
+- Use `ref()` for primitive values, `reactive()` for objects (or prefer `ref()` for consistency)
+- Use `computed()` for derived state
+- Prefer composition over inheritance
+- Keep components small and focused (< 300 lines)
+- Extract complex logic into composables
+
+## TypeScript Patterns
+
+### Type Definitions
+```typescript
+// Basic types
+export interface User {
+  id: string
+  username: string
+  email: string
+  createdAt: string
+}
+
+export interface Community {
+  id: string
+  name: string
+  description: string
+  owner: User
+  createdAt: string
+}
+
+// API response types
+export interface ApiResponse<T> {
+  data: T
+  message?: string
+}
+
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
+// Form types
+export interface LoginCredentials {
+  username: string
+  password: string
+}
+
+// Utility types
+export type Status = 'idle' | 'loading' | 'success' | 'error'
+export type UserRole = 'admin' | 'moderator' | 'member'
+```
+
+### Type Guidelines
+- Define types in feature-specific `types.ts` files
+- Share common types in `src/shared/types/index.ts`
+- Use `interface` for object shapes that might be extended
+- Use `type` for unions, intersections, and mapped types
+- Avoid `any` - use `unknown` if type is truly unknown
+- Use type guards for runtime type checking
+
+## Pinia Store Patterns
+
+### Store Structure
+```typescript
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { User, AuthTokens, LoginCredentials } from '@/types'
+import { authApi } from '../api'
+
+export const useAuthStore = defineStore('auth', () => {
+  // State
+  const user = ref<User | null>(null)
+  const tokens = ref<AuthTokens | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Getters
+  const isAuthenticated = computed(() => !!tokens.value?.access)
+  const userRole = computed(() => user.value?.role || 'member')
+
+  // Actions
+  async function login(credentials: LoginCredentials) {
+    loading.value = true
+    error.value = null
+    try {
+      tokens.value = await authApi.login(credentials)
+      await fetchUser()
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Login failed'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function logout() {
+    await authApi.logout()
+    user.value = null
+    tokens.value = null
+  }
+
+  async function fetchUser() {
+    if (!tokens.value?.access) return
+    try {
+      user.value = await authApi.getMe()
+    } catch {
+      tokens.value = null
+      user.value = null
+    }
+  }
+
+  function $reset() {
+    user.value = null
+    tokens.value = null
+    loading.value = false
+    error.value = null
+  }
+
+  return {
+    // State
+    user,
+    tokens,
+    loading,
+    error,
+    // Getters
+    isAuthenticated,
+    userRole,
+    // Actions
+    login,
+    logout,
+    fetchUser,
+    $reset,
+  }
+})
+```
+
+### Store Guidelines
+- Use Composition API style (`defineStore` with setup function)
+- Organize into: state → getters → actions
+- Keep stores focused on a single domain
+- Use `ref()` for state, `computed()` for getters
+- Handle loading and error states
+- Return all state, getters, and actions from setup function
+- Store location: `src/features/{feature}/stores/{feature}Store.ts`
+
+## Composables
+
+### Composable Pattern
+```typescript
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export function useDebounce<T>(initialValue: T, delay: number = 300) {
+  const value = ref<T>(initialValue)
+  const debouncedValue = ref<T>(initialValue)
+  let timeout: ReturnType<typeof setTimeout> | null = null
+
+  function setValue(newValue: T) {
+    value.value = newValue
+    
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    
+    timeout = setTimeout(() => {
+      debouncedValue.value = newValue
+    }, delay)
+  }
+
+  onUnmounted(() => {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+  })
+
+  return {
+    value,
+    debouncedValue,
+    setValue,
+  }
+}
+
+// Usage in component
+const { debouncedValue, setValue } = useDebounce('', 500)
+```
+
+### Composable Guidelines
+- Prefix with `use` (e.g., `useAuth`, `useDebounce`)
+- Return an object with reactive values and methods
+- Handle cleanup in `onUnmounted` if needed
+- Keep composables pure and reusable
+- Feature-specific composables: `src/features/{feature}/composables/`
+- Shared composables: `src/composables/`
+
+## API Integration
+
+### API Client Setup
+```typescript
+import axios, { type AxiosInstance } from 'axios'
+import type { AuthTokens } from '@/types'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+
+export const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000,
+})
+
+// Request interceptor - add auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const tokens = getTokens()
+    if (tokens?.access) {
+      config.headers.Authorization = `Bearer ${tokens.access}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Response interceptor - handle errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    // Handle 401, token refresh, etc.
+    return Promise.reject(error)
+  }
+)
+```
+
+### API Module Pattern
+```typescript
+import { apiClient } from '@/shared/api/client'
+import type { Community, PaginatedResponse } from '@/types'
+
+export const communitiesApi = {
+  async getAll(): Promise<PaginatedResponse<Community>> {
+    const response = await apiClient.get<PaginatedResponse<Community>>('/communities/')
+    return response.data
+  },
+
+  async getById(id: string): Promise<Community> {
+    const response = await apiClient.get<Community>(`/communities/${id}/`)
+    return response.data
+  },
+
+  async create(data: Partial<Community>): Promise<Community> {
+    const response = await apiClient.post<Community>('/communities/', data)
+    return response.data
+  },
+
+  async update(id: string, data: Partial<Community>): Promise<Community> {
+    const response = await apiClient.patch<Community>(`/communities/${id}/`, data)
+    return response.data
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/communities/${id}/`)
+  },
+}
+```
+
+### API Guidelines
+- Create API modules in `src/features/{feature}/api.ts`
+- Export an object with named methods
+- Use TypeScript generics for type-safe responses
+- Handle errors at the API layer or in stores
+- Use async/await for cleaner code
+- Return response.data, not the full response
+
+## Router Configuration
+
+### Route Definition
+```typescript
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/features/auth/stores/authStore'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('@/views/HomeView.vue'),
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { guest: true },
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/communities/:id',
+    name: 'community-detail',
+    component: () => import('@/views/CommunityDetailView.vue'),
+    meta: { requiresAuth: true },
+    props: true, // Pass route params as props
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+})
+
+// Navigation guard
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else if (to.meta.guest && authStore.isAuthenticated) {
+    next({ name: 'dashboard' })
+  } else {
+    next()
+  }
+})
+
+export default router
+```
+
+### Router Guidelines
+- Use lazy loading for route components: `() => import()`
+- Define route meta for authentication, roles, etc.
+- Use navigation guards for access control
+- Pass route params as props when possible
+- Use named routes for navigation: `router.push({ name: 'dashboard' })`
+
+## Tailwind CSS
+
+### Utility-First Approach
+```vue
+<template>
+  <!-- Good: Use utility classes -->
+  <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-md">
+    <h2 class="text-xl font-semibold text-gray-800">{{ title }}</h2>
+    <button class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 transition">
+      Click me
+    </button>
+  </div>
+
+  <!-- Avoid: Inline styles -->
+  <div style="display: flex; padding: 1rem;">
+    <!-- ... -->
+  </div>
+</template>
+```
+
+### Tailwind Guidelines
+- Use Tailwind utility classes for styling
+- Use `@apply` in `<style>` blocks sparingly for repeated patterns
+- Follow responsive design: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Use Tailwind's color palette
+- Leverage Tailwind's spacing scale (4px increments)
+- Use `dark:` prefix for dark mode support
+
+### Component Styling
+```vue
+<style scoped>
+/* Only use scoped styles for complex patterns */
+.custom-component {
+  @apply flex items-center space-x-4 p-4;
+}
+
+.custom-component:hover {
+  @apply bg-gray-100;
+}
+</style>
+```
+
+## Error Handling
+
+### Try-Catch Pattern
+```typescript
+async function fetchData() {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const data = await api.getData()
+    items.value = data
+  } catch (e) {
+    if (axios.isAxiosError(e)) {
+      error.value = e.response?.data?.message || 'Failed to fetch data'
+    } else {
+      error.value = e instanceof Error ? e.message : 'An unexpected error occurred'
+    }
+    console.error('Error fetching data:', e)
+  } finally {
+    loading.value = false
+  }
+}
+```
+
+### Error Display
+```vue
+<template>
+  <div v-if="error" class="p-4 text-red-600 bg-red-50 rounded">
+    {{ error }}
+  </div>
+</template>
+```
+
+## Form Handling
+
+### Form Pattern
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { LoginCredentials } from '@/types'
+
+const form = ref<LoginCredentials>({
+  username: '',
+  password: '',
+})
+
+const errors = ref<Partial<Record<keyof LoginCredentials, string>>>({})
+const loading = ref(false)
+
+function validateForm(): boolean {
+  errors.value = {}
+  
+  if (!form.value.username) {
+    errors.value.username = 'Username is required'
+  }
+  
+  if (!form.value.password) {
+    errors.value.password = 'Password is required'
+  } else if (form.value.password.length < 8) {
+    errors.value.password = 'Password must be at least 8 characters'
+  }
+  
+  return Object.keys(errors.value).length === 0
+}
+
+async function handleSubmit() {
+  if (!validateForm()) return
+  
+  loading.value = true
+  try {
+    await authApi.login(form.value)
+    router.push({ name: 'dashboard' })
+  } catch (e) {
+    errors.value.general = 'Invalid credentials'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <div>
+      <input
+        v-model="form.username"
+        type="text"
+        placeholder="Username"
+        :class="{ 'border-red-500': errors.username }"
+      />
+      <span v-if="errors.username" class="text-red-500">{{ errors.username }}</span>
+    </div>
+    
+    <div>
+      <input
+        v-model="form.password"
+        type="password"
+        placeholder="Password"
+        :class="{ 'border-red-500': errors.password }"
+      />
+      <span v-if="errors.password" class="text-red-500">{{ errors.password }}</span>
+    </div>
+    
+    <button type="submit" :disabled="loading">
+      {{ loading ? 'Loading...' : 'Login' }}
+    </button>
+  </form>
+</template>
+```
+
+## Performance Optimization
+
+### Lazy Loading
+```typescript
+// Lazy load components
+const HeavyComponent = defineAsyncComponent(() => import('./HeavyComponent.vue'))
+
+// Lazy load routes
+{
+  path: '/dashboard',
+  component: () => import('@/views/DashboardView.vue')
+}
+```
+
+### Computed vs Methods
+```typescript
+// Good: Use computed for derived state
+const filteredItems = computed(() => {
+  return items.value.filter(item => item.active)
+})
+
+// Bad: Don't use methods for derived state in template
+function getFilteredItems() {
+  return items.value.filter(item => item.active)
+}
+```
+
+### v-for Optimization
+```vue
+<!-- Always use :key with v-for -->
+<div v-for="item in items" :key="item.id">
+  {{ item.name }}
+</div>
+
+<!-- Use v-show for frequently toggled elements -->
+<div v-show="isVisible">Content</div>
+
+<!-- Use v-if for conditionally rendered elements -->
+<div v-if="shouldRender">Content</div>
+```
+
+## Testing Considerations
+
+### Component Testing
+```typescript
+import { mount } from '@vue/test-utils'
+import { describe, it, expect } from 'vitest'
+import UserProfile from './UserProfile.vue'
+
+describe('UserProfile', () => {
+  it('renders user name', () => {
+    const wrapper = mount(UserProfile, {
+      props: {
+        user: { id: '1', name: 'John Doe' }
+      }
+    })
+    
+    expect(wrapper.text()).toContain('John Doe')
+  })
+})
+```
+
+### Testing Guidelines
+- Test user interactions, not implementation details
+- Mock API calls and external dependencies
+- Test edge cases and error states
+- Keep tests simple and focused
+
+## Environment Variables
+
+### .env File
+```bash
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_APP_NAME=FUT WebApp
+```
+
+### Usage
+```typescript
+const apiUrl = import.meta.env.VITE_API_BASE_URL
+const appName = import.meta.env.VITE_APP_NAME
+```
+
+### Guidelines
+- Prefix all variables with `VITE_`
+- Never commit `.env` files with secrets
+- Document required variables in README
+- Use `.env.example` for template
+
+## Code Review Checklist
+
+Before committing code, ensure:
+- [ ] TypeScript types are properly defined
+- [ ] No `any` types (use `unknown` if needed)
+- [ ] Components use `<script setup>` syntax
+- [ ] Proper error handling in async operations
+- [ ] Loading states for async operations
+- [ ] Responsive design with Tailwind
+- [ ] Accessibility attributes (aria-labels, roles)
+- [ ] No console.log statements (use proper logging)
+- [ ] Code follows ESLint and Prettier rules
+- [ ] Components are small and focused
+- [ ] Reusable logic extracted to composables
+- [ ] API calls in separate API modules
+
+## Best Practices Summary
+
+1. **Component Design**: Keep components small, focused, and reusable
+2. **State Management**: Use Pinia for global state, local state for component-specific data
+3. **Type Safety**: Always use TypeScript types, avoid `any`
+4. **Code Organization**: Follow feature-based structure
+5. **Performance**: Use lazy loading, computed properties, and proper key attributes
+6. **Styling**: Use Tailwind utility classes
+7. **Error Handling**: Always handle errors gracefully with user feedback
+8. **Accessibility**: Consider keyboard navigation and screen readers
+9. **Testing**: Write tests for critical functionality
+10. **Documentation**: Add JSDoc comments for complex functions
+
+## Additional Resources
+
+- Vue 3 Documentation: https://vuejs.org/
+- Pinia Documentation: https://pinia.vuejs.org/
+- Vue Router Documentation: https://router.vuejs.org/
+- Tailwind CSS Documentation: https://tailwindcss.com/
+- TypeScript Documentation: https://www.typescriptlang.org/
