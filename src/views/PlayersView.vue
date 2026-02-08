@@ -14,6 +14,8 @@ const communityId = computed(() => route.params.id as string)
 
 const showModal = ref(false)
 const isSubmitting = ref(false)
+const editingPlayerId = ref<string | null>(null)
+const isEditMode = computed(() => editingPlayerId.value !== null)
 const formData = ref<PlayerCreate>({
   community: '',
   name: '',
@@ -44,6 +46,7 @@ onMounted(async () => {
 })
 
 const openModal = () => {
+  editingPlayerId.value = null
   formData.value = {
     community: communityId.value,
     name: '',
@@ -54,8 +57,26 @@ const openModal = () => {
   showModal.value = true
 }
 
+const openEditModal = (playerId: string) => {
+  const player = playersStore.players.find((p) => p.id === playerId)
+  if (!player) return
+
+  editingPlayerId.value = playerId
+  formData.value = {
+    community: player.community,
+    name: player.name,
+    nickname: player.nickname || '',
+    position: player.position,
+    number: player.number || undefined,
+    role: player.role,
+    status: player.status,
+  }
+  showModal.value = true
+}
+
 const closeModal = () => {
   showModal.value = false
+  editingPlayerId.value = null
 }
 
 const handleSubmit = async () => {
@@ -63,7 +84,11 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true
   try {
-    await playersStore.createPlayer(formData.value)
+    if (isEditMode.value && editingPlayerId.value) {
+      await playersStore.updatePlayer(editingPlayerId.value, formData.value)
+    } else {
+      await playersStore.createPlayer(formData.value)
+    }
     closeModal()
   } catch {
     // Error handled by store
@@ -221,17 +246,33 @@ const handleSubmit = async () => {
             >
               {{ player.position }}
             </span>
+            <button
+              @click="openEditModal(player.id)"
+              class="p-2 text-slate-400 hover:text-white transition-colors"
+              title="Editar jogador"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Create Modal -->
+    <!-- Create/Edit Modal -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" @click="closeModal" />
         <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md p-6">
-          <h2 class="text-xl font-bold text-white mb-6">Novo Jogador</h2>
+          <h2 class="text-xl font-bold text-white mb-6">
+            {{ isEditMode ? 'Editar Jogador' : 'Novo Jogador' }}
+          </h2>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <div>
