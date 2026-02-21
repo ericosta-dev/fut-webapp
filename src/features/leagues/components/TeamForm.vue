@@ -76,7 +76,7 @@ async function handleSubmit() {
     if (e?.response?.data) {
       const data = e.response.data as Record<string, string[]>
       Object.keys(data).forEach((key) => {
-        errors.value[key as keyof TeamCreate] = data[key][0]
+        errors.value[key as keyof TeamCreate] = data[key]?.[0] ?? ''
       })
     }
   } finally {

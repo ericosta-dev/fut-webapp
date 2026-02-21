@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useLeaguesStore } from '../stores/leaguesStore'
+import { useMatchDaysStore } from '@/features/matchdays/stores/matchdaysStore'
 import TeamForm from './TeamForm.vue'
+import MatchDayCard from '@/features/matchdays/components/MatchDayCard.vue'
+import MatchDayForm from '@/features/matchdays/components/MatchDayForm.vue'
 
 interface Props {
   communityId: string
@@ -9,15 +13,19 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 const leaguesStore = useLeaguesStore()
+const matchdaysStore = useMatchDaysStore()
 
 const showTeamForm = ref(false)
-const activeTab = ref<'info' | 'teams'>('info')
+const showMatchDayForm = ref(false)
+const activeTab = ref<'info' | 'teams' | 'matchdays'>('info')
 
 // Computed
 const league = computed(() => leaguesStore.currentLeague)
 const teams = computed(() => leaguesStore.currentTeams)
+const matchdays = computed(() => matchdaysStore.matchdays)
 
 const statusBadge = computed(() => {
   if (!league.value) return { text: '', class: '' }
@@ -85,10 +93,14 @@ onMounted(async () => {
 
 async function loadLeagueData() {
   await leaguesStore.fetchLeagueById(props.communityId, props.leagueId)
-  if (league.value?.format === 'CUP') {
-    await leaguesStore.fetchTeams(props.communityId, props.leagueId)
-    activeTab.value = 'teams'
-  }
+  await Promise.all([
+    leaguesStore.currentLeague?.format === 'CUP'
+      ? leaguesStore.fetchTeams(props.communityId, props.leagueId)
+      : Promise.resolve(),
+    matchdaysStore.fetchMatchDays(props.communityId, props.leagueId),
+  ])
+  if (league.value?.format === 'CUP') activeTab.value = 'teams'
+  else activeTab.value = 'matchdays'
 }
 
 function handleTeamCreated() {
@@ -100,6 +112,25 @@ async function handleDeleteTeam(teamId: string) {
   if (confirm('Tem certeza que deseja excluir este time?')) {
     await leaguesStore.deleteTeam(props.communityId, props.leagueId, teamId)
   }
+}
+
+function handleMatchDayCreated(matchdayId: string) {
+  showMatchDayForm.value = false
+  router.push(
+    `/communities/${props.communityId}/leagues/${props.leagueId}/matchdays/${matchdayId}`,
+  )
+}
+
+async function handleDeleteMatchDay(matchdayId: string) {
+  if (confirm('Tem certeza que deseja excluir esta súmula?')) {
+    await matchdaysStore.deleteMatchDay(props.communityId, props.leagueId, matchdayId)
+  }
+}
+
+function openMatchDay(matchdayId: string) {
+  router.push(
+    `/communities/${props.communityId}/leagues/${props.leagueId}/matchdays/${matchdayId}`,
+  )
 }
 </script>
 
@@ -173,6 +204,17 @@ async function handleDeleteTeam(teamId: string) {
           >
             Times ({{ teams.length }})
           </button>
+          <button
+            @click="activeTab = 'matchdays'"
+            :class="[
+              activeTab === 'matchdays'
+                ? 'border-emerald-500 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-600',
+              'px-6 py-3 border-b-2 font-medium text-sm',
+            ]"
+          >
+            Súmulas ({{ matchdays.length }})
+          </button>
         </nav>
       </div>
 
@@ -191,7 +233,7 @@ async function handleDeleteTeam(teamId: string) {
               {{
                 league.format === 'CUP'
                   ? 'Copa - Times fixos que competem ao longo da temporada. Pontos acumulam para os times.'
-                  : 'Liga - Ranking individual de jogadores. Times são formados dinamicamente em cada MatchDay. Pontos acumulam para jogadores individuais.'
+                  : 'Liga - Ranking individual de jogadores. Times são formados dinamicamente em cada Súmula. Pontos acumulam para jogadores individuais.'
               }}
             </p>
           </div>
@@ -256,6 +298,44 @@ async function handleDeleteTeam(teamId: string) {
           <p v-else-if="!showTeamForm" class="text-slate-400 text-center py-8">
             Nenhum time cadastrado ainda.
           </p>
+        </div>
+
+        <!-- MatchDays Tab -->
+        <div v-if="activeTab === 'matchdays'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">Súmulas</h3>
+            <button
+              v-if="!showMatchDayForm"
+              @click="showMatchDayForm = true"
+              class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+            >
+              + Nova Súmula
+            </button>
+          </div>
+
+          <MatchDayForm
+            v-if="showMatchDayForm"
+            :community-id="communityId"
+            :league-id="leagueId"
+            @success="handleMatchDayCreated"
+            @cancel="showMatchDayForm = false"
+          />
+
+          <div v-if="matchdays.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <MatchDayCard
+              v-for="md in matchdays"
+              :key="md.id"
+              :matchday="md"
+              @click="openMatchDay(md.id)"
+              @delete="handleDeleteMatchDay(md.id)"
+            />
+          </div>
+
+          <div v-else-if="!showMatchDayForm" class="text-center py-12 text-slate-400">
+            <div class="text-4xl mb-3">📋</div>
+            <p class="font-medium">Nenhuma súmula registrada ainda</p>
+            <p class="text-sm mt-1">Crie a primeira súmula para começar a registrar partidas.</p>
+          </div>
         </div>
       </div>
     </div>

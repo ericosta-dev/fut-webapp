@@ -45,6 +45,12 @@ const router = createRouter({
       component: () => import('@/views/LeagueDetailView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/communities/:communityId/leagues/:leagueId/matchdays/:matchdayId',
+      name: 'matchday-detail',
+      component: () => import('@/views/MatchDayDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

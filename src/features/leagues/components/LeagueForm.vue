@@ -82,7 +82,7 @@ async function handleSubmit() {
       // Map backend errors to form errors
       const data = e.response.data as Record<string, string[]>
       Object.keys(data).forEach((key) => {
-        errors.value[key as keyof LeagueCreate] = data[key][0]
+        errors.value[key as keyof LeagueCreate] = data[key]?.[0] ?? ''
       })
     }
   } finally {

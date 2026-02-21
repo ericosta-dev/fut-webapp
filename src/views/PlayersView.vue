@@ -223,7 +223,7 @@ const handleSubmit = async () => {
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
               <span class="text-lg font-medium text-white">
-                {{ (player.nickname || player.name)[0].toUpperCase() }}
+                {{ (player.nickname || player.name || '?')[0]!.toUpperCase() }}
               </span>
             </div>
             <div class="flex-1 min-w-0">

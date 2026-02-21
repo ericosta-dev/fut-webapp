@@ -364,7 +364,7 @@ function handleLeagueClick(leagueId: string) {
             >
               <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
                 <span class="text-sm font-medium text-white">
-                  {{ (player.nickname || player.name)[0].toUpperCase() }}
+                  {{ (player.nickname || player.name || '?')[0]!.toUpperCase() }}
                 </span>
               </div>
               <div class="flex-1 min-w-0">
