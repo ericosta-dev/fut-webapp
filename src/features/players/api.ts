@@ -1,5 +1,5 @@
 import { apiClient } from '@/api'
-import type { Player, PlayerCreate, PaginatedResponse } from '@/types'
+import type { Player, PlayerCreate, PlayerStats, PaginatedResponse } from '@/types'
 
 export const playersApi = {
   async list(communityId?: string): Promise<PaginatedResponse<Player>> {
@@ -10,6 +10,17 @@ export const playersApi = {
 
   async get(id: string): Promise<Player> {
     const response = await apiClient.get<Player>(`/players/${id}/`)
+    return response.data
+  },
+
+  async me(communityId?: string): Promise<Player> {
+    const params = communityId ? { community: communityId } : {}
+    const response = await apiClient.get<Player>('/players/me/', { params })
+    return response.data
+  },
+
+  async stats(playerId: string): Promise<PlayerStats> {
+    const response = await apiClient.get<PlayerStats>(`/players/${playerId}/stats/`)
     return response.data
   },
 

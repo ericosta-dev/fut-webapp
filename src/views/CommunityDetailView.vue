@@ -95,7 +95,11 @@ function handleLeagueClick(leagueId: string) {
                 {{ communitiesStore.currentCommunity.description }}
               </p>
             </div>
-            <button class="p-2 text-slate-400 hover:text-white transition-colors">
+            <router-link
+              :to="`/communities/${communityId}/settings`"
+              class="p-2 text-slate-400 hover:text-white transition-colors"
+              title="Configurações da comunidade"
+            >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -110,7 +114,7 @@ function handleLeagueClick(leagueId: string) {
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-            </button>
+            </router-link>
           </div>
         </div>
 

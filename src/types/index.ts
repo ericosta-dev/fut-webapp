@@ -16,15 +16,26 @@ export interface User {
 }
 
 // Community types
+export type CommunityCurrency = 'BRL' | 'USD' | 'EUR'
+
 export interface Community extends BaseModel {
   name: string
   description: string
   owner: number
+  max_mensalistas: number
+  monthly_fee: string
+  currency: CommunityCurrency
 }
 
 export interface CommunityCreate {
   name: string
   description: string
+}
+
+export interface CommunitySettings {
+  max_mensalistas?: number
+  monthly_fee?: number | string
+  currency?: CommunityCurrency
 }
 
 // Player types
@@ -51,6 +62,15 @@ export interface PlayerCreate {
   number?: number
   role?: PlayerRole
   status?: PlayerStatus
+}
+
+export interface PlayerStats {
+  player_id: string
+  player_name: string
+  goals: number
+  assists: number
+  own_goals: number
+  matches_played: number
 }
 
 // Auth types

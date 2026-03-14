@@ -34,6 +34,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/communities/:id/settings',
+      name: 'community-settings',
+      component: () => import('@/views/CommunitySettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/communities/:id/players',
       name: 'community-players',
       component: () => import('@/views/PlayersView.vue'),

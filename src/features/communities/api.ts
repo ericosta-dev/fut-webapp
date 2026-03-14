@@ -1,5 +1,5 @@
 import { apiClient } from '@/api'
-import type { Community, CommunityCreate, PaginatedResponse } from '@/types'
+import type { Community, CommunityCreate, CommunitySettings, PaginatedResponse } from '@/types'
 
 export const communitiesApi = {
   async list(): Promise<PaginatedResponse<Community>> {
@@ -18,6 +18,11 @@ export const communitiesApi = {
   },
 
   async update(id: string, data: Partial<CommunityCreate>): Promise<Community> {
+    const response = await apiClient.patch<Community>(`/communities/${id}/`, data)
+    return response.data
+  },
+
+  async updateSettings(id: string, data: CommunitySettings): Promise<Community> {
     const response = await apiClient.patch<Community>(`/communities/${id}/`, data)
     return response.data
   },

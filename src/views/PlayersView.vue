@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCommunitiesStore } from '@/stores/communities'
 import { usePlayersStore } from '@/stores/players'
 import AppLayout from '@/components/AppLayout.vue'
-import type { PlayerCreate, PlayerPosition } from '@/types'
+import type { PlayerCreate, PlayerPosition, PlayerStatus } from '@/types'
 
 const route = useRoute()
 const communitiesStore = useCommunitiesStore()
@@ -14,14 +14,29 @@ const communityId = computed(() => route.params.id as string)
 
 const showModal = ref(false)
 const isSubmitting = ref(false)
+const submitError = ref<string | null>(null)
 const editingPlayerId = ref<string | null>(null)
 const isEditMode = computed(() => editingPlayerId.value !== null)
+
+// Filters
+const activePosition = ref<PlayerPosition | null>(null)
+const activeStatus = ref<PlayerStatus | null>(null)
+
+const filteredPlayers = computed(() => {
+  return playersStore.players.filter((p) => {
+    const posMatch = activePosition.value === null || p.position === activePosition.value
+    const statusMatch = activeStatus.value === null || p.status === activeStatus.value
+    return posMatch && statusMatch
+  })
+})
+
 const formData = ref<PlayerCreate>({
   community: '',
   name: '',
   nickname: '',
   position: 'MID',
   number: undefined,
+  status: 'ONE_TIME',
 })
 
 const positions: { value: PlayerPosition; label: string }[] = [
@@ -38,6 +53,22 @@ const positionLabels: Record<string, string> = {
   GK: 'Goleiro',
 }
 
+// When position changes to GK, force status back to ONE_TIME
+watch(
+  () => formData.value.position,
+  (pos) => {
+    if (pos === 'GK') {
+      formData.value.status = 'ONE_TIME'
+    }
+  },
+)
+
+const selectMonthly = () => {
+  if (formData.value.position !== 'GK') {
+    formData.value.status = 'MONTHLY'
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     communitiesStore.fetchCommunity(communityId.value),
@@ -47,12 +78,14 @@ onMounted(async () => {
 
 const openModal = () => {
   editingPlayerId.value = null
+  submitError.value = null
   formData.value = {
     community: communityId.value,
     name: '',
     nickname: '',
     position: 'MID',
     number: undefined,
+    status: 'ONE_TIME',
   }
   showModal.value = true
 }
@@ -61,6 +94,7 @@ const openEditModal = (playerId: string) => {
   const player = playersStore.players.find((p) => p.id === playerId)
   if (!player) return
 
+  submitError.value = null
   editingPlayerId.value = playerId
   formData.value = {
     community: player.community,
@@ -77,10 +111,30 @@ const openEditModal = (playerId: string) => {
 const closeModal = () => {
   showModal.value = false
   editingPlayerId.value = null
+  submitError.value = null
 }
+
+// Count current monthly players (excluding the one being edited)
+const monthlyCount = computed(() =>
+  playersStore.players.filter((p) => p.status === 'MONTHLY' && p.id !== editingPlayerId.value)
+    .length,
+)
+const maxMensalistas = computed(() => communitiesStore.currentCommunity?.max_mensalistas ?? 0)
 
 const handleSubmit = async () => {
   if (!formData.value.name) return
+
+  submitError.value = null
+
+  // Frontend guard: max mensalistas
+  if (
+    formData.value.status === 'MONTHLY' &&
+    maxMensalistas.value > 0 &&
+    monthlyCount.value >= maxMensalistas.value
+  ) {
+    submitError.value = `Limite de ${maxMensalistas.value} mensalista(s) já atingido para esta comunidade.`
+    return
+  }
 
   isSubmitting.value = true
   try {
@@ -90,8 +144,14 @@ const handleSubmit = async () => {
       await playersStore.createPlayer(formData.value)
     }
     closeModal()
-  } catch {
-    // Error handled by store
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: Record<string, string[]> } }
+    if (err?.response?.data) {
+      const messages = Object.values(err.response.data).flat().join(' ')
+      submitError.value = messages || 'Erro ao salvar jogador.'
+    } else {
+      submitError.value = 'Erro ao salvar jogador.'
+    }
   } finally {
     isSubmitting.value = false
   }
@@ -139,19 +199,58 @@ const handleSubmit = async () => {
         </button>
       </div>
 
-      <!-- Position Filter Tabs -->
-      <div class="flex gap-2 overflow-x-auto pb-2">
+      <!-- Filters: Position + Status -->      
+      <div class="flex flex-wrap gap-2 pb-2">
+        <!-- All -->
         <button
-          class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium whitespace-nowrap"
+          @click="activePosition = null; activeStatus = null"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+            activePosition === null && activeStatus === null
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+          ]"
         >
           Todos ({{ playersStore.players.length }})
         </button>
+        <!-- Position chips -->
         <button
           v-for="pos in positions"
           :key="pos.value"
-          class="px-4 py-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white text-sm font-medium whitespace-nowrap transition-colors"
+          @click="activePosition = activePosition === pos.value ? null : pos.value"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+            activePosition === pos.value
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+          ]"
         >
           {{ pos.label }} ({{ playersStore.playersByPosition[pos.value].length }})
+        </button>
+        <!-- Divider -->
+        <div class="w-px bg-slate-700 self-stretch mx-1" />
+        <!-- Status chips -->
+        <button
+          @click="activeStatus = activeStatus === 'MONTHLY' ? null : 'MONTHLY'"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+            activeStatus === 'MONTHLY'
+              ? 'bg-purple-500/20 text-purple-400'
+              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+          ]"
+        >
+          Mensalistas ({{ playersStore.players.filter((p) => p.status === 'MONTHLY').length }})
+        </button>
+        <button
+          @click="activeStatus = activeStatus === 'ONE_TIME' ? null : 'ONE_TIME'"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
+            activeStatus === 'ONE_TIME'
+              ? 'bg-amber-500/20 text-amber-400'
+              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+          ]"
+        >
+          Avulsos ({{ playersStore.players.filter((p) => p.status === 'ONE_TIME').length }})
         </button>
       </div>
 
@@ -174,7 +273,7 @@ const handleSubmit = async () => {
         </svg>
       </div>
 
-      <!-- Empty State -->
+      <!-- Empty State (no players at all) -->
       <div v-else-if="playersStore.players.length === 0" class="text-center py-24">
         <div
           class="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-6"
@@ -214,9 +313,14 @@ const handleSubmit = async () => {
       </div>
 
       <!-- Players Grid -->
-      <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-else class="space-y-4">
+        <!-- No results for active filter -->
+        <p v-if="filteredPlayers.length === 0" class="text-slate-400 text-sm py-12 text-center">
+          Nenhum jogador encontrado para o filtro selecionado.
+        </p>
+        <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="player in playersStore.players"
+          v-for="player in filteredPlayers"
           :key="player.id"
           class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 hover:border-slate-600 transition-colors"
         >
@@ -232,6 +336,7 @@ const handleSubmit = async () => {
               </p>
               <p class="text-sm text-slate-400">{{ positionLabels[player.position] }}</p>
             </div>
+            <!-- Position badge -->
             <span
               :class="[
                 'px-2 py-1 rounded-lg text-xs font-medium',
@@ -245,6 +350,17 @@ const handleSubmit = async () => {
               ]"
             >
               {{ player.position }}
+            </span>
+            <!-- Status badge -->
+            <span
+              :class="[
+                'px-2 py-1 rounded-lg text-xs font-medium',
+                player.status === 'MONTHLY'
+                  ? 'bg-purple-500/20 text-purple-400'
+                  : 'bg-slate-700 text-slate-400',
+              ]"
+            >
+              {{ player.status === 'MONTHLY' ? 'Mens.' : 'Avulso' }}
             </span>
             <button
               @click="openEditModal(player.id)"
@@ -262,6 +378,7 @@ const handleSubmit = async () => {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -331,6 +448,55 @@ const handleSubmit = async () => {
                   placeholder="10"
                 />
               </div>
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-2">Tipo de Jogador</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  @click="formData.status = 'ONE_TIME'"
+                  :class="[
+                    'px-4 py-3 rounded-xl border text-sm font-medium transition-colors',
+                    formData.status === 'ONE_TIME'
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                      : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:text-white',
+                  ]"
+                >
+                  Avulso
+                </button>
+                <button
+                  type="button"
+                  @click="selectMonthly"
+                  :disabled="formData.position === 'GK'"
+                  :title="formData.position === 'GK' ? 'Goleiros não podem ser mensalistas' : ''"
+                  :class="[
+                    'px-4 py-3 rounded-xl border text-sm font-medium transition-colors',
+                    formData.position === 'GK'
+                      ? 'opacity-40 cursor-not-allowed bg-slate-900/50 border-slate-700 text-slate-500'
+                      : formData.status === 'MONTHLY'
+                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                        : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:text-white',
+                  ]"
+                >
+                  Mensalista
+                  <span
+                    v-if="maxMensalistas > 0"
+                    class="block text-xs opacity-70 mt-0.5"
+                  >
+                    {{ monthlyCount }}/{{ maxMensalistas }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit error -->
+            <div
+              v-if="submitError"
+              class="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+            >
+              {{ submitError }}
             </div>
 
             <div class="flex gap-3 pt-4">
