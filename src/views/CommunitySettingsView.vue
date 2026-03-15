@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCommunitiesStore } from '@/stores/communities'
 import AppLayout from '@/components/AppLayout.vue'
+import { Input, Label, Button } from '@/components/ui'
+import { ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-vue-next'
 import type { CommunitySettings, CommunityCurrency } from '@/types'
 
 const route = useRoute()
@@ -60,104 +62,72 @@ const currentCurrencySymbol = computed(() => {
 
 <template>
   <AppLayout>
-    <div class="space-y-6 max-w-2xl">
-      <!-- Back Button -->
+    <div class="space-y-6 max-w-2xl animate-fade-in">
+      <!-- Back -->
       <router-link
         :to="`/communities/${communityId}`"
-        class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ArrowLeft :size="18" />
         Voltar para {{ communitiesStore.currentCommunity?.name || 'Comunidade' }}
       </router-link>
 
       <!-- Header -->
       <div>
-        <h1 class="text-2xl font-bold text-white">Configurações da Comunidade</h1>
-        <p class="text-slate-400 mt-1">
-          {{ communitiesStore.currentCommunity?.name }}
-        </p>
+        <h1 class="text-2xl font-bold text-foreground">Configurações da Comunidade</h1>
+        <p class="text-muted-foreground mt-1">{{ communitiesStore.currentCommunity?.name }}</p>
       </div>
 
       <!-- Loading -->
       <div v-if="communitiesStore.loading" class="flex items-center justify-center py-24">
-        <svg class="animate-spin w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          />
-        </svg>
+        <Loader2 :size="32" class="animate-spin text-primary" />
       </div>
 
       <template v-else>
-        <!-- Success / Error banners -->
+        <!-- Banners -->
         <div
           v-if="successMessage"
-          class="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm"
+          class="flex items-center gap-3 px-4 py-3 rounded-xl bg-success/10 border border-success/30 text-success text-sm"
         >
-          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
+          <CheckCircle :size="18" class="shrink-0" />
           {{ successMessage }}
         </div>
         <div
           v-if="errorMessage"
-          class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+          class="flex items-center gap-3 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm"
         >
-          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XCircle :size="18" class="shrink-0" />
           {{ errorMessage }}
         </div>
 
-        <!-- Settings Form -->
-        <form
-          @submit.prevent="handleSubmit"
-          class="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6 space-y-6"
-        >
+        <!-- Form -->
+        <form @submit.prevent="handleSubmit" class="rounded-2xl border border-border bg-card p-6 space-y-6">
           <div>
-            <h2 class="text-lg font-semibold text-white mb-1">Mensalistas</h2>
-            <p class="text-sm text-slate-400 mb-4">
+            <h2 class="text-lg font-semibold text-foreground mb-1">Mensalistas</h2>
+            <p class="text-sm text-muted-foreground mb-4">
               Configure o limite e o valor da mensalidade para jogadores mensalistas.
             </p>
 
             <div class="space-y-4">
-              <!-- Max mensalistas -->
-              <div>
-                <label for="max_mensalistas" class="block text-sm font-medium text-slate-300 mb-2">
-                  Número máximo de mensalistas
-                </label>
-                <input
+              <div class="space-y-1.5">
+                <Label for="max_mensalistas">Número máximo de mensalistas</Label>
+                <Input
                   id="max_mensalistas"
                   v-model.number="formData.max_mensalistas"
                   type="number"
                   min="0"
-                  class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
                   placeholder="0"
                 />
-                <p class="text-xs text-slate-500 mt-1">
-                  Defina 0 para não ter limite de mensalistas.
-                </p>
+                <p class="text-xs text-muted-foreground">Defina 0 para não ter limite de mensalistas.</p>
               </div>
 
-              <!-- Currency + Monthly fee side by side -->
               <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label for="currency" class="block text-sm font-medium text-slate-300 mb-2">
-                    Moeda
-                  </label>
+                <div class="space-y-1.5">
+                  <Label for="currency">Moeda</Label>
                   <select
                     id="currency"
                     v-model="formData.currency"
-                    class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                    class="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary"
                   >
                     <option v-for="c in currencies" :key="c.value" :value="c.value">
                       {{ c.symbol }} — {{ c.label }}
@@ -165,23 +135,19 @@ const currentCurrencySymbol = computed(() => {
                   </select>
                 </div>
 
-                <div>
-                  <label for="monthly_fee" class="block text-sm font-medium text-slate-300 mb-2">
-                    Valor da Mensalidade
-                  </label>
+                <div class="space-y-1.5">
+                  <Label for="monthly_fee">Valor da Mensalidade</Label>
                   <div class="relative">
-                    <span
-                      class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm select-none"
-                    >
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">
                       {{ currentCurrencySymbol }}
                     </span>
-                    <input
+                    <Input
                       id="monthly_fee"
                       v-model.number="formData.monthly_fee"
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                      class="pl-10"
                       placeholder="0,00"
                     />
                   </div>
@@ -191,20 +157,13 @@ const currentCurrencySymbol = computed(() => {
           </div>
 
           <div class="flex gap-3 pt-2">
-            <button
-              type="button"
-              @click="router.push(`/communities/${communityId}`)"
-              class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-colors"
-            >
+            <Button type="button" variant="outline" class="flex-1" @click="router.push(`/communities/${communityId}`)">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="isSubmitting"
-              class="flex-1 px-4 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-slate-900 font-medium rounded-xl transition-colors"
-            >
+            </Button>
+            <Button type="submit" :disabled="isSubmitting" class="flex-1">
+              <Loader2 v-if="isSubmitting" :size="14" class="animate-spin mr-1" />
               {{ isSubmitting ? 'Salvando...' : 'Salvar Configurações' }}
-            </button>
+            </Button>
           </div>
         </form>
       </template>

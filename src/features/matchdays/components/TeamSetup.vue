@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { Input, Label, Button, Badge } from '@/components/ui'
+import { Shuffle, Plus, Check } from 'lucide-vue-next'
 import type { Player } from '@/types'
 
 interface Props {
@@ -15,14 +17,12 @@ const emit = defineEmits<{
   (e: 'addTeam', name: string, playerIds: string[]): void
 }>()
 
-// ─── Position order ───────────────────────────────────────────────────────────
 const POSITION_ORDER: Record<string, number> = { DEF: 0, MID: 1, FWD: 2 }
 
 function sortByPosition(a: Player, b: Player) {
   return (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99)
 }
 
-/** Non-GK players split by status, each sorted DEF → MID → FWD */
 const fieldPlayerSections = computed(() => {
   const nonGk = props.players.filter((p) => p.position !== 'GK')
   const monthly = nonGk.filter((p) => p.status === 'MONTHLY').sort(sortByPosition)
@@ -35,11 +35,9 @@ const fieldPlayerSections = computed(() => {
 
 const allFieldPlayers = computed(() => fieldPlayerSections.value.flatMap((s) => s.players))
 
-// ─── Shuffle mode ─────────────────────────────────────────────────────────────
 type Mode = 'manual' | 'shuffle'
 const mode = ref<Mode>(props.leagueFormat === 'LEAGUE' ? 'shuffle' : 'manual')
 
-// ─── Shuffle config ───────────────────────────────────────────────────────────
 const selectedPlayerIds = ref<Set<string>>(new Set())
 const teamCount = ref(2)
 const teamNames = ref<string[]>(['Time A', 'Time B'])
@@ -51,43 +49,30 @@ watch(teamCount, (n) => {
 })
 
 function togglePlayer(id: string) {
-  if (selectedPlayerIds.value.has(id)) {
-    selectedPlayerIds.value.delete(id)
-  } else {
-    selectedPlayerIds.value.add(id)
-  }
-  // Force reactivity
+  if (selectedPlayerIds.value.has(id)) selectedPlayerIds.value.delete(id)
+  else selectedPlayerIds.value.add(id)
   selectedPlayerIds.value = new Set(selectedPlayerIds.value)
 }
 
 function toggleAll() {
-  if (allSelected.value) {
-    selectedPlayerIds.value = new Set()
-  } else {
-    selectedPlayerIds.value = new Set(allFieldPlayers.value.map((p) => p.id))
-  }
+  if (allSelected.value) selectedPlayerIds.value = new Set()
+  else selectedPlayerIds.value = new Set(allFieldPlayers.value.map((p) => p.id))
 }
 
 const allSelected = computed(
-  () =>
-    allFieldPlayers.value.length > 0 &&
-    selectedPlayerIds.value.size === allFieldPlayers.value.length,
+  () => allFieldPlayers.value.length > 0 && selectedPlayerIds.value.size === allFieldPlayers.value.length,
 )
 
 function handleShuffle() {
   emit('shuffle', Array.from(selectedPlayerIds.value), teamCount.value, teamNames.value)
 }
 
-// ─── Manual mode ─────────────────────────────────────────────────────────────
 const newTeamName = ref('')
 const manualSelectedIds = ref<Set<string>>(new Set())
 
 function toggleManualPlayer(id: string) {
-  if (manualSelectedIds.value.has(id)) {
-    manualSelectedIds.value.delete(id)
-  } else {
-    manualSelectedIds.value.add(id)
-  }
+  if (manualSelectedIds.value.has(id)) manualSelectedIds.value.delete(id)
+  else manualSelectedIds.value.add(id)
   manualSelectedIds.value = new Set(manualSelectedIds.value)
 }
 
@@ -101,83 +86,70 @@ function handleAddTeam() {
 
 <template>
   <div class="space-y-4">
-    <!-- Mode selector (LEAGUE only — CUP uses import) -->
+    <!-- Mode selector -->
     <div v-if="leagueFormat === 'LEAGUE'" class="flex gap-2">
-      <button
+      <Button
         @click="mode = 'shuffle'"
-        :class="[
-          mode === 'shuffle'
-            ? 'bg-emerald-600 text-white'
-            : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700',
-          'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
-        ]"
+        :variant="mode === 'shuffle' ? 'default' : 'outline'"
+        size="sm"
       >
-        🎲 Sortear Times
-      </button>
-      <button
+        <Shuffle :size="14" /> Sortear Times
+      </Button>
+      <Button
         @click="mode = 'manual'"
-        :class="[
-          mode === 'manual'
-            ? 'bg-emerald-600 text-white'
-            : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700',
-          'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
-        ]"
+        :variant="mode === 'manual' ? 'default' : 'outline'"
+        size="sm"
       >
-        ✏️ Montar Manualmente
-      </button>
+        <Plus :size="14" /> Montar Manualmente
+      </Button>
     </div>
 
-    <!-- Shuffle mode ──────────────────────────────────────────────────────── -->
+    <!-- Shuffle mode -->
     <div v-if="mode === 'shuffle'" class="space-y-4">
-      <!-- Team count -->
       <div>
-        <label class="block text-sm font-medium text-slate-300 mb-1.5">Quantidade de Times</label>
+        <Label class="mb-1.5">Quantidade de Times</Label>
         <div class="flex items-center gap-3">
           <button
             @click="teamCount = Math.max(2, teamCount - 1)"
-            class="w-8 h-8 rounded-lg bg-slate-700 text-white hover:bg-slate-600 flex items-center justify-center font-bold"
+            class="w-8 h-8 rounded-lg bg-muted text-foreground hover:bg-muted/80 flex items-center justify-center font-bold transition-colors"
           >
             −
           </button>
-          <span class="text-white font-semibold text-lg w-6 text-center">{{ teamCount }}</span>
+          <span class="text-foreground font-semibold text-lg w-6 text-center">{{ teamCount }}</span>
           <button
             @click="teamCount = Math.min(8, teamCount + 1)"
-            class="w-8 h-8 rounded-lg bg-slate-700 text-white hover:bg-slate-600 flex items-center justify-center font-bold"
+            class="w-8 h-8 rounded-lg bg-muted text-foreground hover:bg-muted/80 flex items-center justify-center font-bold transition-colors"
           >
             +
           </button>
         </div>
       </div>
 
-      <!-- Team names -->
       <div>
-        <label class="block text-sm font-medium text-slate-300 mb-1.5">Nomes dos Times</label>
+        <Label class="mb-1.5">Nomes dos Times</Label>
         <div class="grid grid-cols-2 gap-2">
-          <input
+          <Input
             v-for="(_, i) in teamNames"
             :key="i"
             v-model="teamNames[i]"
-            type="text"
             :placeholder="`Time ${i + 1}`"
-            class="bg-slate-700/50 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       </div>
 
-      <!-- Player selection -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-medium text-slate-300">
+          <Label>
             Selecionar Jogadores
-            <span class="text-slate-500">({{ selectedPlayerIds.size }} selecionados)</span>
-          </label>
-          <button @click="toggleAll" class="text-xs text-emerald-400 hover:text-emerald-300">
+            <Badge variant="secondary" class="ml-2 text-xs">{{ selectedPlayerIds.size }} selecionados</Badge>
+          </Label>
+          <button @click="toggleAll" class="text-xs text-primary hover:text-primary/80 transition-colors">
             {{ allSelected ? 'Desmarcar Todos' : 'Selecionar Todos' }}
           </button>
         </div>
-        <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+        <div class="space-y-3 max-h-64 overflow-y-auto pr-1 scrollbar-thin">
           <div v-for="section in fieldPlayerSections" :key="section.label">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
               {{ section.label }}
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -187,52 +159,53 @@ function handleAddTeam() {
                 @click="togglePlayer(player.id)"
                 :class="[
                   selectedPlayerIds.has(player.id)
-                    ? 'border-emerald-500 bg-emerald-500/10 text-white'
-                    : 'border-slate-600 text-slate-400 hover:border-slate-500',
-                  'px-3 py-2 rounded-lg border text-sm text-left transition-colors',
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:border-muted-foreground/50',
+                  'px-3 py-2 rounded-lg border text-sm text-left transition-colors flex items-center gap-1.5',
                 ]"
               >
-                <span class="text-slate-500 text-xs mr-1">#{{ player.number ?? '–' }}</span>
+                <Check v-if="selectedPlayerIds.has(player.id)" :size="12" class="text-primary shrink-0" />
+                <span class="text-muted-foreground/60 text-xs mr-0.5">#{{ player.number ?? '–' }}</span>
                 {{ player.nickname || player.name }}
               </button>
             </div>
           </div>
-          <p v-if="allFieldPlayers.length === 0" class="text-xs text-slate-500 italic">
+          <p v-if="allFieldPlayers.length === 0" class="text-xs text-muted-foreground italic">
             Nenhum jogador de linha encontrado.
           </p>
         </div>
       </div>
 
-      <button
+      <Button
         @click="handleShuffle"
         :disabled="selectedPlayerIds.size < teamCount || loading"
-        class="w-full py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        variant="accent"
+        class="w-full"
       >
-        {{ loading ? 'Sorteando...' : '🎲 Sortear e Criar Times' }}
-      </button>
+        <Shuffle :size="14" />
+        {{ loading ? 'Sorteando...' : 'Sortear e Criar Times' }}
+      </Button>
     </div>
 
-    <!-- Manual mode ──────────────────────────────────────────────────────── -->
+    <!-- Manual mode -->
     <div v-else class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-300 mb-1.5">Nome do Time</label>
-        <input
+      <div class="space-y-1.5">
+        <Label>Nome do Time</Label>
+        <Input
           v-model="newTeamName"
-          type="text"
           placeholder="Ex: Time Verde"
-          class="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           @keydown.enter="handleAddTeam"
         />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-slate-300 mb-1.5">
+        <Label class="mb-1.5">
           Jogadores do Time
-          <span class="text-slate-500">({{ manualSelectedIds.size }} selecionados)</span>
-        </label>
-        <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+          <Badge variant="secondary" class="ml-2 text-xs">{{ manualSelectedIds.size }} selecionados</Badge>
+        </Label>
+        <div class="space-y-3 max-h-64 overflow-y-auto pr-1 scrollbar-thin">
           <div v-for="section in fieldPlayerSections" :key="section.label">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
               {{ section.label }}
             </p>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -242,29 +215,31 @@ function handleAddTeam() {
                 @click="toggleManualPlayer(player.id)"
                 :class="[
                   manualSelectedIds.has(player.id)
-                    ? 'border-emerald-500 bg-emerald-500/10 text-white'
-                    : 'border-slate-600 text-slate-400 hover:border-slate-500',
-                  'px-3 py-2 rounded-lg border text-sm text-left transition-colors',
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:border-muted-foreground/50',
+                  'px-3 py-2 rounded-lg border text-sm text-left transition-colors flex items-center gap-1.5',
                 ]"
               >
-                <span class="text-slate-500 text-xs mr-1">#{{ player.number ?? '–' }}</span>
+                <Check v-if="manualSelectedIds.has(player.id)" :size="12" class="text-primary shrink-0" />
+                <span class="text-muted-foreground/60 text-xs mr-0.5">#{{ player.number ?? '–' }}</span>
                 {{ player.nickname || player.name }}
               </button>
             </div>
           </div>
-          <p v-if="allFieldPlayers.length === 0" class="text-xs text-slate-500 italic">
+          <p v-if="allFieldPlayers.length === 0" class="text-xs text-muted-foreground italic">
             Nenhum jogador de linha encontrado.
           </p>
         </div>
       </div>
 
-      <button
+      <Button
         @click="handleAddTeam"
         :disabled="!newTeamName.trim() || loading"
-        class="w-full py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        variant="accent"
+        class="w-full"
       >
-        + Adicionar Time
-      </button>
+        <Plus :size="14" /> Adicionar Time
+      </Button>
     </div>
   </div>
 </template>

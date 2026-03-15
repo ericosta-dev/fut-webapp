@@ -5,6 +5,8 @@ import { useCommunitiesStore } from '@/stores/communities'
 import { usePlayersStore } from '@/stores/players'
 import { useLeaguesStore } from '@/features/leagues/stores/leaguesStore'
 import AppLayout from '@/components/AppLayout.vue'
+import { Card, CardContent, Badge, Button } from '@/components/ui'
+import { ArrowLeft, Settings, Users, ClipboardList, FileText, BarChart3, Plus, Loader2 } from 'lucide-vue-next'
 import LeagueCard from '@/features/leagues/components/LeagueCard.vue'
 import LeagueForm from '@/features/leagues/components/LeagueForm.vue'
 import type { League } from '@/features/leagues/types'
@@ -33,6 +35,11 @@ const positionLabels: Record<string, string> = {
   GK: 'Goleiro',
 }
 
+const positionVariant = (pos: string) => {
+  const map: Record<string, string> = { FWD: 'destructive', MID: 'default', DEF: 'warning', GK: 'success' }
+  return (map[pos] ?? 'secondary') as 'destructive' | 'default' | 'warning' | 'success' | 'secondary'
+}
+
 function handleLeagueCreated(league: League) {
   showLeagueForm.value = false
   router.push(`/communities/${communityId.value}/leagues/${league.id}`)
@@ -45,75 +52,35 @@ function handleLeagueClick(leagueId: string) {
 
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <!-- Back Button -->
+    <div class="space-y-6 animate-fade-in">
+      <!-- Back -->
       <router-link
         to="/communities"
-        class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ArrowLeft :size="18" />
         Voltar
       </router-link>
 
       <!-- Loading -->
       <div v-if="communitiesStore.loading" class="flex items-center justify-center py-24">
-        <svg class="animate-spin w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          />
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          />
-        </svg>
+        <Loader2 :size="32" class="animate-spin text-primary" />
       </div>
 
       <template v-else-if="communitiesStore.currentCommunity">
-        <!-- Community Header -->
-        <div
-          class="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/20 p-6"
-        >
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-primary/10 via-transparent to-accent/5 rounded-2xl border border-primary/20 p-6">
           <div class="flex items-start justify-between">
             <div>
-              <h1 class="text-2xl font-bold text-white mb-2">
-                {{ communitiesStore.currentCommunity.name }}
-              </h1>
-              <p class="text-slate-400">
-                {{ communitiesStore.currentCommunity.description }}
-              </p>
+              <h1 class="text-2xl font-bold text-foreground mb-2">{{ communitiesStore.currentCommunity.name }}</h1>
+              <p class="text-muted-foreground">{{ communitiesStore.currentCommunity.description }}</p>
             </div>
             <router-link
               :to="`/communities/${communityId}/settings`"
-              class="p-2 text-slate-400 hover:text-white transition-colors"
+              class="p-2 text-muted-foreground hover:text-foreground transition-colors"
               title="Configurações da comunidade"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
+              <Settings :size="20" />
             </router-link>
           </div>
         </div>
@@ -122,187 +89,91 @@ function handleLeagueClick(leagueId: string) {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <router-link
             :to="`/communities/${communityId}/players`"
-            class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 hover:border-emerald-500/50 transition-colors text-center"
+            class="group"
           >
-            <div
-              class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mx-auto mb-3"
-            >
-              <svg
-                class="w-5 h-5 text-emerald-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            <p class="text-sm font-medium text-white">Jogadores</p>
-            <p class="text-xs text-slate-400">{{ playersStore.players.length }} cadastrados</p>
+            <Card class="hover:border-primary/50 transition-colors text-center p-4">
+              <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mx-auto mb-3">
+                <Users :size="20" class="text-primary" />
+              </div>
+              <p class="text-sm font-medium text-foreground">Jogadores</p>
+              <p class="text-xs text-muted-foreground">{{ playersStore.players.length }} cadastrados</p>
+            </Card>
           </router-link>
 
-          <div
-            class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 text-center opacity-60"
-          >
-            <div
-              class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mx-auto mb-3"
-            >
-              <svg
-                class="w-5 h-5 text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                />
-              </svg>
+          <Card class="text-center p-4 opacity-60">
+            <div class="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center mx-auto mb-3">
+              <ClipboardList :size="20" class="text-accent-foreground" />
             </div>
-            <p class="text-sm font-medium text-white">Lista Semanal</p>
-            <p class="text-xs text-slate-400">Em breve</p>
-          </div>
+            <p class="text-sm font-medium text-foreground">Lista Semanal</p>
+            <p class="text-xs text-muted-foreground">Em breve</p>
+          </Card>
 
-          <div
-            class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 text-center opacity-60"
-          >
-            <div
-              class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center mx-auto mb-3"
-            >
-              <svg
-                class="w-5 h-5 text-amber-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
+          <Card class="text-center p-4 opacity-60">
+            <div class="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center mx-auto mb-3">
+              <FileText :size="20" class="text-warning" />
             </div>
-            <p class="text-sm font-medium text-white">Súmulas</p>
-            <p class="text-xs text-slate-400">Em breve</p>
-          </div>
+            <p class="text-sm font-medium text-foreground">Súmulas</p>
+            <p class="text-xs text-muted-foreground">Em breve</p>
+          </Card>
 
-          <div
-            class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 text-center opacity-60"
-          >
-            <div
-              class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mx-auto mb-3"
-            >
-              <svg
-                class="w-5 h-5 text-purple-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
+          <Card class="text-center p-4 opacity-60">
+            <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mx-auto mb-3">
+              <BarChart3 :size="20" class="text-primary" />
             </div>
-            <p class="text-sm font-medium text-white">Estatísticas</p>
-            <p class="text-xs text-slate-400">Em breve</p>
-          </div>
+            <p class="text-sm font-medium text-foreground">Estatísticas</p>
+            <p class="text-xs text-muted-foreground">Em breve</p>
+          </Card>
         </div>
 
-        <!-- Leagues Section -->
+        <!-- Leagues -->
         <div>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white">Ligas e Competições</h2>
-            <button
-              @click="showLeagueForm = !showLeagueForm"
-              class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-            >
+            <h2 class="text-lg font-semibold text-foreground">Ligas e Competições</h2>
+            <Button @click="showLeagueForm = !showLeagueForm" size="sm">
               {{ showLeagueForm ? 'Cancelar' : '+ Nova Liga' }}
-            </button>
+            </Button>
           </div>
 
           <!-- League Form -->
-          <div
-            v-if="showLeagueForm"
-            class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 mb-4"
-          >
-            <h3 class="text-lg font-semibold text-white mb-4">Criar Nova Liga</h3>
-            <LeagueForm
-              :community-id="communityId"
-              @success="handleLeagueCreated"
-              @cancel="showLeagueForm = false"
-            />
-          </div>
+          <Card v-if="showLeagueForm" class="mb-4">
+            <CardContent class="p-6">
+              <h3 class="text-lg font-semibold text-foreground mb-4">Criar Nova Liga</h3>
+              <LeagueForm
+                :community-id="communityId"
+                @success="handleLeagueCreated"
+                @cancel="showLeagueForm = false"
+              />
+            </CardContent>
+          </Card>
 
           <!-- Loading -->
           <div v-if="leaguesStore.loading" class="flex items-center justify-center py-8">
-            <svg class="animate-spin w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <Loader2 :size="24" class="animate-spin text-primary" />
           </div>
 
-          <!-- No Leagues -->
-          <div
-            v-else-if="leaguesStore.leagues.length === 0 && !showLeagueForm"
-            class="text-center py-8 bg-slate-800/30 rounded-xl border border-slate-700/50"
-          >
-            <p class="text-slate-400">Nenhuma liga cadastrada ainda.</p>
+          <!-- Empty -->
+          <Card v-else-if="leaguesStore.leagues.length === 0 && !showLeagueForm" class="text-center py-8">
+            <p class="text-muted-foreground">Nenhuma liga cadastrada ainda.</p>
             <button
               @click="showLeagueForm = true"
-              class="inline-flex items-center gap-2 mt-4 text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+              class="inline-flex items-center gap-2 mt-4 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <Plus :size="16" />
               Criar Primeira Liga
             </button>
-          </div>
+          </Card>
 
-          <!-- Leagues Grid -->
+          <!-- Grid -->
           <div v-else-if="!showLeagueForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              v-for="league in leaguesStore.leagues.slice(0, 4)"
-              :key="league.id"
-              @click="handleLeagueClick(league.id)"
-            >
+            <div v-for="league in leaguesStore.leagues.slice(0, 4)" :key="league.id" @click="handleLeagueClick(league.id)">
               <LeagueCard :league="league" />
             </div>
           </div>
 
-          <!-- View All Link -->
-          <div
-            v-if="leaguesStore.leagues.length > 4 && !showLeagueForm"
-            class="text-center mt-4"
-          >
+          <div v-if="leaguesStore.leagues.length > 4 && !showLeagueForm" class="text-center mt-4">
             <button
               @click="router.push(`/communities/${communityId}/leagues`)"
-              class="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+              class="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
             >
               Ver todas as ligas &rarr;
             </button>
@@ -312,87 +183,49 @@ function handleLeagueClick(leagueId: string) {
         <!-- Recent Players -->
         <div>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white">Jogadores Recentes</h2>
+            <h2 class="text-lg font-semibold text-foreground">Jogadores Recentes</h2>
             <router-link
               :to="`/communities/${communityId}/players`"
-              class="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+              class="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
             >
               Ver todos &rarr;
             </router-link>
           </div>
 
           <div v-if="playersStore.loading" class="flex items-center justify-center py-8">
-            <svg class="animate-spin w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <Loader2 :size="24" class="animate-spin text-primary" />
           </div>
 
-          <div
-            v-else-if="playersStore.players.length === 0"
-            class="text-center py-8 bg-slate-800/30 rounded-xl border border-slate-700/50"
-          >
-            <p class="text-slate-400">Nenhum jogador cadastrado ainda.</p>
+          <Card v-else-if="playersStore.players.length === 0" class="text-center py-8">
+            <p class="text-muted-foreground">Nenhum jogador cadastrado ainda.</p>
             <router-link
               :to="`/communities/${communityId}/players`"
-              class="inline-flex items-center gap-2 mt-4 text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+              class="inline-flex items-center gap-2 mt-4 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <Plus :size="16" />
               Adicionar Jogador
             </router-link>
-          </div>
+          </Card>
 
           <div v-else class="grid gap-3">
-            <div
+            <Card
               v-for="player in playersStore.players.slice(0, 5)"
               :key="player.id"
-              class="flex items-center gap-4 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4"
+              class="flex items-center gap-4 p-4"
             >
-              <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                <span class="text-sm font-medium text-white">
+              <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                <span class="text-sm font-medium text-foreground">
                   {{ (player.nickname || player.name || '?')[0]!.toUpperCase() }}
                 </span>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="font-medium text-white truncate">
-                  {{ player.number ? `(${player.number}) ` : ''
-                  }}{{ player.nickname || player.name }}
+                <p class="font-medium text-foreground truncate">
+                  {{ player.number ? `(${player.number}) ` : '' }}{{ player.nickname || player.name }}
                 </p>
-                <p class="text-sm text-slate-400">{{ positionLabels[player.position] }}</p>
+                <p class="text-sm text-muted-foreground">{{ positionLabels[player.position] }}</p>
               </div>
-              <span
-                :class="[
-                  'px-2 py-1 rounded-lg text-xs font-medium',
-                  player.position === 'FWD'
-                    ? 'bg-red-500/20 text-red-400'
-                    : player.position === 'MID'
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : player.position === 'DEF'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-emerald-500/20 text-emerald-400',
-                ]"
-              >
-                {{ player.position }}
-              </span>
-            </div>
+              <Badge :variant="positionVariant(player.position)">{{ player.position }}</Badge>
+            </Card>
           </div>
         </div>
       </template>

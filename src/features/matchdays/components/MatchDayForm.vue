@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMatchDaysStore } from '../stores/matchdaysStore'
+import { Input, Label, Button } from '@/components/ui'
+import { Loader2 } from 'lucide-vue-next'
 import type { MatchDayCreate } from '../types'
 
 interface Props {
@@ -17,7 +19,6 @@ const emit = defineEmits<{
 
 const store = useMatchDaysStore()
 
-// ─── Form state ───────────────────────────────────────────────────────────────
 const form = ref<MatchDayCreate>({
   date: new Date().toISOString().split('T')[0] ?? '',
   label: '',
@@ -26,8 +27,6 @@ const form = ref<MatchDayCreate>({
 
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
-
-// ─── Validation ───────────────────────────────────────────────────────────────
 const isValid = computed(() => !!form.value.date)
 
 function validateForm(): boolean {
@@ -36,7 +35,6 @@ function validateForm(): boolean {
   return Object.keys(errors.value).length === 0
 }
 
-// ─── Submit ───────────────────────────────────────────────────────────────────
 async function handleSubmit() {
   if (!validateForm() || isSubmitting.value) return
   isSubmitting.value = true
@@ -64,71 +62,56 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="bg-slate-700/30 border border-slate-600/50 rounded-xl p-5 space-y-4">
-    <h3 class="text-white font-semibold text-lg">Nova Súmula</h3>
+  <div class="rounded-xl border border-border bg-card p-5 space-y-4">
+    <h3 class="text-foreground font-semibold text-lg">Nova Súmula</h3>
 
-    <!-- General error -->
-    <p v-if="errors.general" class="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+    <p v-if="errors.general" class="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
       {{ errors.general }}
     </p>
 
-    <!-- Date -->
-    <div>
-      <label class="block text-sm font-medium text-slate-300 mb-1.5">
-        Data <span class="text-red-400">*</span>
-      </label>
-      <input
+    <div class="space-y-1.5">
+      <Label for="mdDate">Data <span class="text-destructive">*</span></Label>
+      <Input
+        id="mdDate"
         v-model="form.date"
         type="date"
-        class="w-full bg-slate-700/50 border border-slate-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-        :class="{ 'border-red-500': errors.date }"
+        :class="{ 'border-destructive': errors.date }"
       />
-      <p v-if="errors.date" class="mt-1 text-xs text-red-400">{{ errors.date }}</p>
+      <p v-if="errors.date" class="text-xs text-destructive">{{ errors.date }}</p>
     </div>
 
-    <!-- Label -->
-    <div>
-      <label class="block text-sm font-medium text-slate-300 mb-1.5">
+    <div class="space-y-1.5">
+      <Label for="mdLabel">
         Título / Etapa
-        <span class="text-slate-500 font-normal">(opcional)</span>
-      </label>
-      <input
+        <span class="text-muted-foreground font-normal">(opcional)</span>
+      </Label>
+      <Input
+        id="mdLabel"
         v-model="form.label"
-        type="text"
         placeholder="Ex: Rodada 1, Semifinal..."
-        class="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
       />
     </div>
 
-    <!-- Notes -->
-    <div>
-      <label class="block text-sm font-medium text-slate-300 mb-1.5">
+    <div class="space-y-1.5">
+      <Label for="mdNotes">
         Observações
-        <span class="text-slate-500 font-normal">(opcional)</span>
-      </label>
+        <span class="text-muted-foreground font-normal">(opcional)</span>
+      </Label>
       <textarea
+        id="mdNotes"
         v-model="form.notes"
         rows="2"
         placeholder="Notas adicionais sobre o dia..."
-        class="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+        class="flex w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary resize-none"
       />
     </div>
 
-    <!-- Actions -->
     <div class="flex gap-3 pt-1">
-      <button
-        @click="handleSubmit"
-        :disabled="!isValid || isSubmitting"
-        class="px-5 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
+      <Button @click="handleSubmit" :disabled="!isValid || isSubmitting" variant="accent" size="sm">
+        <Loader2 v-if="isSubmitting" :size="14" class="animate-spin" />
         {{ isSubmitting ? 'Criando...' : 'Criar Súmula' }}
-      </button>
-      <button
-        @click="$emit('cancel')"
-        class="px-5 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
-      >
-        Cancelar
-      </button>
+      </Button>
+      <Button @click="$emit('cancel')" variant="outline" size="sm">Cancelar</Button>
     </div>
   </div>
 </template>

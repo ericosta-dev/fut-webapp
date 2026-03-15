@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import { useCommunitiesStore } from '@/stores/communities'
 import { usePlayersStore } from '@/stores/players'
 import AppLayout from '@/components/AppLayout.vue'
+import { Card, Badge, Button, Input, Label } from '@/components/ui'
+import { ArrowLeft, Plus, Edit, User, Loader2 } from 'lucide-vue-next'
 import type { PlayerCreate, PlayerPosition, PlayerStatus } from '@/types'
 
 const route = useRoute()
@@ -47,26 +49,21 @@ const positions: { value: PlayerPosition; label: string }[] = [
 ]
 
 const positionLabels: Record<string, string> = {
-  FWD: 'Atacante',
-  MID: 'Meio-Campo',
-  DEF: 'Defensor',
-  GK: 'Goleiro',
+  FWD: 'Atacante', MID: 'Meio-Campo', DEF: 'Defensor', GK: 'Goleiro',
 }
 
-// When position changes to GK, force status back to ONE_TIME
+const positionVariant = (pos: string) => {
+  const map: Record<string, string> = { FWD: 'destructive', MID: 'default', DEF: 'warning', GK: 'success' }
+  return (map[pos] ?? 'secondary') as 'destructive' | 'default' | 'warning' | 'success' | 'secondary'
+}
+
 watch(
   () => formData.value.position,
-  (pos) => {
-    if (pos === 'GK') {
-      formData.value.status = 'ONE_TIME'
-    }
-  },
+  (pos) => { if (pos === 'GK') formData.value.status = 'ONE_TIME' },
 )
 
 const selectMonthly = () => {
-  if (formData.value.position !== 'GK') {
-    formData.value.status = 'MONTHLY'
-  }
+  if (formData.value.position !== 'GK') formData.value.status = 'MONTHLY'
 }
 
 onMounted(async () => {
@@ -79,70 +76,40 @@ onMounted(async () => {
 const openModal = () => {
   editingPlayerId.value = null
   submitError.value = null
-  formData.value = {
-    community: communityId.value,
-    name: '',
-    nickname: '',
-    position: 'MID',
-    number: undefined,
-    status: 'ONE_TIME',
-  }
+  formData.value = { community: communityId.value, name: '', nickname: '', position: 'MID', number: undefined, status: 'ONE_TIME' }
   showModal.value = true
 }
 
 const openEditModal = (playerId: string) => {
   const player = playersStore.players.find((p) => p.id === playerId)
   if (!player) return
-
   submitError.value = null
   editingPlayerId.value = playerId
   formData.value = {
-    community: player.community,
-    name: player.name,
-    nickname: player.nickname || '',
-    position: player.position,
-    number: player.number || undefined,
-    role: player.role,
-    status: player.status,
+    community: player.community, name: player.name, nickname: player.nickname || '',
+    position: player.position, number: player.number || undefined, role: player.role, status: player.status,
   }
   showModal.value = true
 }
 
-const closeModal = () => {
-  showModal.value = false
-  editingPlayerId.value = null
-  submitError.value = null
-}
+const closeModal = () => { showModal.value = false; editingPlayerId.value = null; submitError.value = null }
 
-// Count current monthly players (excluding the one being edited)
 const monthlyCount = computed(() =>
-  playersStore.players.filter((p) => p.status === 'MONTHLY' && p.id !== editingPlayerId.value)
-    .length,
+  playersStore.players.filter((p) => p.status === 'MONTHLY' && p.id !== editingPlayerId.value).length,
 )
 const maxMensalistas = computed(() => communitiesStore.currentCommunity?.max_mensalistas ?? 0)
 
 const handleSubmit = async () => {
   if (!formData.value.name) return
-
   submitError.value = null
-
-  // Frontend guard: max mensalistas
-  if (
-    formData.value.status === 'MONTHLY' &&
-    maxMensalistas.value > 0 &&
-    monthlyCount.value >= maxMensalistas.value
-  ) {
+  if (formData.value.status === 'MONTHLY' && maxMensalistas.value > 0 && monthlyCount.value >= maxMensalistas.value) {
     submitError.value = `Limite de ${maxMensalistas.value} mensalista(s) já atingido para esta comunidade.`
     return
   }
-
   isSubmitting.value = true
   try {
-    if (isEditMode.value && editingPlayerId.value) {
-      await playersStore.updatePlayer(editingPlayerId.value, formData.value)
-    } else {
-      await playersStore.createPlayer(formData.value)
-    }
+    if (isEditMode.value && editingPlayerId.value) await playersStore.updatePlayer(editingPlayerId.value, formData.value)
+    else await playersStore.createPlayer(formData.value)
     closeModal()
   } catch (e: unknown) {
     const err = e as { response?: { data?: Record<string, string[]> } }
@@ -160,60 +127,41 @@ const handleSubmit = async () => {
 
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <!-- Back Button -->
+    <div class="space-y-6 animate-fade-in">
+      <!-- Back -->
       <router-link
         :to="`/communities/${communityId}`"
-        class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ArrowLeft :size="18" />
         Voltar para {{ communitiesStore.currentCommunity?.name || 'Comunidade' }}
       </router-link>
 
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-white">Jogadores</h1>
-          <p class="text-slate-400 mt-1">{{ playersStore.players.length }} jogadores cadastrados</p>
+          <h1 class="text-2xl font-bold text-foreground">Jogadores</h1>
+          <p class="text-muted-foreground mt-1">{{ playersStore.players.length }} jogadores cadastrados</p>
         </div>
-        <button
-          @click="openModal"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-medium rounded-lg transition-colors"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+        <Button @click="openModal">
+          <Plus :size="18" class="mr-1" />
           Novo Jogador
-        </button>
+        </Button>
       </div>
 
-      <!-- Filters: Position + Status -->      
+      <!-- Filters -->
       <div class="flex flex-wrap gap-2 pb-2">
-        <!-- All -->
         <button
           @click="activePosition = null; activeStatus = null"
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
             activePosition === null && activeStatus === null
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+              ? 'bg-primary/20 text-primary'
+              : 'bg-card text-muted-foreground hover:text-foreground',
           ]"
         >
           Todos ({{ playersStore.players.length }})
         </button>
-        <!-- Position chips -->
         <button
           v-for="pos in positions"
           :key="pos.value"
@@ -221,22 +169,20 @@ const handleSubmit = async () => {
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
             activePosition === pos.value
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+              ? 'bg-primary/20 text-primary'
+              : 'bg-card text-muted-foreground hover:text-foreground',
           ]"
         >
           {{ pos.label }} ({{ playersStore.playersByPosition[pos.value].length }})
         </button>
-        <!-- Divider -->
-        <div class="w-px bg-slate-700 self-stretch mx-1" />
-        <!-- Status chips -->
+        <div class="w-px bg-border self-stretch mx-1" />
         <button
           @click="activeStatus = activeStatus === 'MONTHLY' ? null : 'MONTHLY'"
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
             activeStatus === 'MONTHLY'
-              ? 'bg-purple-500/20 text-purple-400'
-              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+              ? 'bg-primary/20 text-primary'
+              : 'bg-card text-muted-foreground hover:text-foreground',
           ]"
         >
           Mensalistas ({{ playersStore.players.filter((p) => p.status === 'MONTHLY').length }})
@@ -246,8 +192,8 @@ const handleSubmit = async () => {
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
             activeStatus === 'ONE_TIME'
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-slate-800/50 text-slate-400 hover:text-white',
+              ? 'bg-warning/20 text-warning'
+              : 'bg-card text-muted-foreground hover:text-foreground',
           ]"
         >
           Avulsos ({{ playersStore.players.filter((p) => p.status === 'ONE_TIME').length }})
@@ -256,203 +202,104 @@ const handleSubmit = async () => {
 
       <!-- Loading -->
       <div v-if="playersStore.loading" class="flex items-center justify-center py-24">
-        <svg class="animate-spin w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          />
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          />
-        </svg>
+        <Loader2 :size="32" class="animate-spin text-primary" />
       </div>
 
-      <!-- Empty State (no players at all) -->
+      <!-- Empty -->
       <div v-else-if="playersStore.players.length === 0" class="text-center py-24">
-        <div
-          class="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-6"
-        >
-          <svg
-            class="w-10 h-10 text-slate-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
+        <div class="w-20 h-20 rounded-2xl bg-card flex items-center justify-center mx-auto mb-6">
+          <User :size="40" class="text-muted-foreground" />
         </div>
-        <h3 class="text-xl font-medium text-white mb-2">Nenhum jogador cadastrado</h3>
-        <p class="text-slate-400 mb-6 max-w-md mx-auto">
+        <h3 class="text-xl font-medium text-foreground mb-2">Nenhum jogador cadastrado</h3>
+        <p class="text-muted-foreground mb-6 max-w-md mx-auto">
           Adicione jogadores à sua comunidade para começar a organizar as peladas.
         </p>
-        <button
-          @click="openModal"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-medium rounded-xl transition-colors"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+        <Button @click="openModal" size="lg">
+          <Plus :size="18" class="mr-1" />
           Adicionar Jogador
-        </button>
+        </Button>
       </div>
 
       <!-- Players Grid -->
       <div v-else class="space-y-4">
-        <!-- No results for active filter -->
-        <p v-if="filteredPlayers.length === 0" class="text-slate-400 text-sm py-12 text-center">
+        <p v-if="filteredPlayers.length === 0" class="text-muted-foreground text-sm py-12 text-center">
           Nenhum jogador encontrado para o filtro selecionado.
         </p>
         <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="player in filteredPlayers"
-          :key="player.id"
-          class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 hover:border-slate-600 transition-colors"
-        >
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
-              <span class="text-lg font-medium text-white">
-                {{ (player.nickname || player.name || '?')[0]!.toUpperCase() }}
-              </span>
+          <Card
+            v-for="player in filteredPlayers"
+            :key="player.id"
+            class="p-4 hover:border-primary/30 transition-colors"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <span class="text-lg font-medium text-foreground">
+                  {{ (player.nickname || player.name || '?')[0]!.toUpperCase() }}
+                </span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-foreground truncate">
+                  {{ player.number ? `(${player.number}) ` : '' }}{{ player.nickname || player.name }}
+                </p>
+                <p class="text-sm text-muted-foreground">{{ positionLabels[player.position] }}</p>
+              </div>
+              <Badge :variant="positionVariant(player.position)">{{ player.position }}</Badge>
+              <Badge :variant="player.status === 'MONTHLY' ? 'default' : 'secondary'">
+                {{ player.status === 'MONTHLY' ? 'Mens.' : 'Avulso' }}
+              </Badge>
+              <button
+                @click="openEditModal(player.id)"
+                class="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                title="Editar jogador"
+              >
+                <Edit :size="18" />
+              </button>
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium text-white truncate">
-                {{ player.number ? `(${player.number}) ` : '' }}{{ player.nickname || player.name }}
-              </p>
-              <p class="text-sm text-slate-400">{{ positionLabels[player.position] }}</p>
-            </div>
-            <!-- Position badge -->
-            <span
-              :class="[
-                'px-2 py-1 rounded-lg text-xs font-medium',
-                player.position === 'FWD'
-                  ? 'bg-red-500/20 text-red-400'
-                  : player.position === 'MID'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : player.position === 'DEF'
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'bg-emerald-500/20 text-emerald-400',
-              ]"
-            >
-              {{ player.position }}
-            </span>
-            <!-- Status badge -->
-            <span
-              :class="[
-                'px-2 py-1 rounded-lg text-xs font-medium',
-                player.status === 'MONTHLY'
-                  ? 'bg-purple-500/20 text-purple-400'
-                  : 'bg-slate-700 text-slate-400',
-              ]"
-            >
-              {{ player.status === 'MONTHLY' ? 'Mens.' : 'Avulso' }}
-            </span>
-            <button
-              @click="openEditModal(player.id)"
-              class="p-2 text-slate-400 hover:text-white transition-colors"
-              title="Editar jogador"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            </button>
-          </div>
+          </Card>
         </div>
-      </div>
       </div>
     </div>
 
-    <!-- Create/Edit Modal -->
+    <!-- Modal -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/60" @click="closeModal" />
-        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md p-6">
-          <h2 class="text-xl font-bold text-white mb-6">
+        <div class="absolute inset-0 bg-background/80 backdrop-blur-sm" @click="closeModal" />
+        <div class="relative bg-card rounded-2xl border border-border w-full max-w-md p-6">
+          <h2 class="text-xl font-bold text-foreground mb-6">
             {{ isEditMode ? 'Editar Jogador' : 'Novo Jogador' }}
           </h2>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
-            <div>
-              <label for="name" class="block text-sm font-medium text-slate-300 mb-2">
-                Nome Completo
-              </label>
-              <input
-                id="name"
-                v-model="formData.name"
-                type="text"
-                class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
-                placeholder="Ex: João Silva"
-              />
+            <div class="space-y-1.5">
+              <Label for="name">Nome Completo</Label>
+              <Input id="name" v-model="formData.name" placeholder="Ex: João Silva" />
             </div>
 
-            <div>
-              <label for="nickname" class="block text-sm font-medium text-slate-300 mb-2">
-                Apelido (opcional)
-              </label>
-              <input
-                id="nickname"
-                v-model="formData.nickname"
-                type="text"
-                class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
-                placeholder="Ex: Joãozinho"
-              />
+            <div class="space-y-1.5">
+              <Label for="nickname">Apelido (opcional)</Label>
+              <Input id="nickname" v-model="formData.nickname" placeholder="Ex: Joãozinho" />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label for="position" class="block text-sm font-medium text-slate-300 mb-2">
-                  Posição
-                </label>
+              <div class="space-y-1.5">
+                <Label for="position">Posição</Label>
                 <select
                   id="position"
                   v-model="formData.position"
-                  class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  class="flex h-10 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary"
                 >
-                  <option v-for="pos in positions" :key="pos.value" :value="pos.value">
-                    {{ pos.label }}
-                  </option>
+                  <option v-for="pos in positions" :key="pos.value" :value="pos.value">{{ pos.label }}</option>
                 </select>
               </div>
-
-              <div>
-                <label for="number" class="block text-sm font-medium text-slate-300 mb-2">
-                  Número (opcional)
-                </label>
-                <input
-                  id="number"
-                  v-model.number="formData.number"
-                  type="number"
-                  min="0"
-                  max="99"
-                  class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
-                  placeholder="10"
-                />
+              <div class="space-y-1.5">
+                <Label for="number">Número (opcional)</Label>
+                <Input id="number" v-model.number="formData.number" type="number" min="0" max="99" placeholder="10" />
               </div>
             </div>
 
             <!-- Status -->
-            <div>
-              <label class="block text-sm font-medium text-slate-300 mb-2">Tipo de Jogador</label>
+            <div class="space-y-1.5">
+              <Label>Tipo de Jogador</Label>
               <div class="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -460,8 +307,8 @@ const handleSubmit = async () => {
                   :class="[
                     'px-4 py-3 rounded-xl border text-sm font-medium transition-colors',
                     formData.status === 'ONE_TIME'
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                      : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:text-white',
+                      ? 'bg-warning/20 border-warning/50 text-warning'
+                      : 'bg-input border-border text-muted-foreground hover:text-foreground',
                   ]"
                 >
                   Avulso
@@ -474,46 +321,31 @@ const handleSubmit = async () => {
                   :class="[
                     'px-4 py-3 rounded-xl border text-sm font-medium transition-colors',
                     formData.position === 'GK'
-                      ? 'opacity-40 cursor-not-allowed bg-slate-900/50 border-slate-700 text-slate-500'
+                      ? 'opacity-40 cursor-not-allowed bg-input border-border text-muted-foreground'
                       : formData.status === 'MONTHLY'
-                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                        : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:text-white',
+                        ? 'bg-primary/20 border-primary/50 text-primary'
+                        : 'bg-input border-border text-muted-foreground hover:text-foreground',
                   ]"
                 >
                   Mensalista
-                  <span
-                    v-if="maxMensalistas > 0"
-                    class="block text-xs opacity-70 mt-0.5"
-                  >
+                  <span v-if="maxMensalistas > 0" class="block text-xs opacity-70 mt-0.5">
                     {{ monthlyCount }}/{{ maxMensalistas }}
                   </span>
                 </button>
               </div>
             </div>
 
-            <!-- Submit error -->
-            <div
-              v-if="submitError"
-              class="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
-            >
+            <!-- Error -->
+            <div v-if="submitError" class="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
               {{ submitError }}
             </div>
 
             <div class="flex gap-3 pt-4">
-              <button
-                type="button"
-                @click="closeModal"
-                class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                :disabled="isSubmitting || !formData.name"
-                class="flex-1 px-4 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-slate-900 font-medium rounded-xl transition-colors"
-              >
+              <Button type="button" variant="outline" class="flex-1" @click="closeModal">Cancelar</Button>
+              <Button type="submit" :disabled="isSubmitting || !formData.name" class="flex-1">
+                <Loader2 v-if="isSubmitting" :size="14" class="animate-spin mr-1" />
                 {{ isSubmitting ? 'Salvando...' : 'Salvar' }}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

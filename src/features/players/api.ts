@@ -19,8 +19,9 @@ export const playersApi = {
     return response.data
   },
 
-  async stats(playerId: string): Promise<PlayerStats> {
-    const response = await apiClient.get<PlayerStats>(`/players/${playerId}/stats/`)
+  async stats(playerId: string, leagueId?: string): Promise<PlayerStats> {
+    const params = leagueId ? { league: leagueId } : {}
+    const response = await apiClient.get<PlayerStats>(`/players/${playerId}/stats/`, { params })
     return response.data
   },
 

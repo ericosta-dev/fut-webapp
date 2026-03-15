@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import LeagueDetail from '@/features/leagues/components/LeagueDetail.vue'
+import { ArrowLeft } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,24 +18,15 @@ function goBack() {
 
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <!-- Back Button -->
+    <div class="space-y-6 animate-fade-in">
       <button
         @click="goBack"
-        class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ArrowLeft :size="18" />
         Voltar para Comunidade
       </button>
 
-      <!-- League Detail Component -->
       <LeagueDetail :community-id="communityId" :league-id="leagueId" />
     </div>
   </AppLayout>

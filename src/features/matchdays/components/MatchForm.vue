@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Button, Label } from '@/components/ui'
 import type { MatchDayTeam } from '../types'
 
 interface Props {
@@ -33,16 +34,15 @@ function handleSubmit() {
 </script>
 
 <template>
-  <div class="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4 space-y-3">
-    <h4 class="text-white font-medium">Nova Partida</h4>
+  <div class="rounded-xl border border-border bg-card p-4 space-y-3">
+    <h4 class="text-foreground font-medium">Nova Partida</h4>
 
     <div class="grid grid-cols-2 gap-3 items-center">
-      <!-- Home team -->
       <div>
-        <label class="block text-xs text-slate-400 mb-1">Time Mandante</label>
+        <Label class="text-xs mb-1">Time Mandante</Label>
         <select
           v-model="homeTeamId"
-          class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         >
           <option value="" disabled>Selecionar...</option>
           <option v-for="team in teams" :key="team.id" :value="team.id">
@@ -50,23 +50,20 @@ function handleSubmit() {
           </option>
         </select>
       </div>
-
-      <!-- VS label -->
       <div></div>
     </div>
 
     <div class="flex items-center gap-2">
-      <div class="flex-1 h-px bg-slate-600"></div>
-      <span class="text-slate-500 text-xs font-bold">VS</span>
-      <div class="flex-1 h-px bg-slate-600"></div>
+      <div class="flex-1 h-px bg-border"></div>
+      <span class="text-muted-foreground text-xs font-bold">VS</span>
+      <div class="flex-1 h-px bg-border"></div>
     </div>
 
-    <!-- Away team -->
     <div>
-      <label class="block text-xs text-slate-400 mb-1">Time Visitante</label>
+      <Label class="text-xs mb-1">Time Visitante</Label>
       <select
         v-model="awayTeamId"
-        class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        class="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
       >
         <option value="" disabled>Selecionar...</option>
         <option v-for="team in availableAwayTeams" :key="team.id" :value="team.id">
@@ -75,21 +72,11 @@ function handleSubmit() {
       </select>
     </div>
 
-    <!-- Actions -->
     <div class="flex gap-2 pt-1">
-      <button
-        @click="handleSubmit"
-        :disabled="!isValid"
-        class="flex-1 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
+      <Button @click="handleSubmit" :disabled="!isValid" variant="accent" size="sm" class="flex-1">
         Adicionar Partida
-      </button>
-      <button
-        @click="$emit('cancel')"
-        class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
-      >
-        Cancelar
-      </button>
+      </Button>
+      <Button @click="$emit('cancel')" variant="outline" size="sm">Cancelar</Button>
     </div>
   </div>
 </template>

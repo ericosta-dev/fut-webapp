@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Card, CardContent, Badge } from '@/components/ui'
+import { Calendar, Users, User } from 'lucide-vue-next'
 import type { LeagueList } from '../types'
 
 interface Props {
@@ -8,102 +10,77 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Computed
-const statusBadge = computed(() => {
-  if (props.league.is_active) {
-    return {
-      text: 'Ativa',
-      class: 'bg-emerald-500/20 text-emerald-400',
-    }
-  } else if (props.league.is_finished) {
-    return {
-      text: 'Finalizada',
-      class: 'bg-slate-500/20 text-slate-400',
-    }
-  } else {
-    return {
-      text: 'Aguardando',
-      class: 'bg-amber-500/20 text-amber-400',
-    }
-  }
+const statusVariant = computed(() => {
+  if (props.league.is_active) return 'success'
+  if (props.league.is_finished) return 'secondary'
+  return 'warning'
 })
 
-const formatBadge = computed(() => {
-  return props.league.format === 'CUP'
-    ? {
-        text: 'Copa',
-        class: 'bg-blue-500/20 text-blue-400',
-      }
-    : {
-        text: 'Liga',
-        class: 'bg-purple-500/20 text-purple-400',
-      }
+const statusText = computed(() => {
+  if (props.league.is_active) return 'Ativa'
+  if (props.league.is_finished) return 'Finalizada'
+  return 'Aguardando'
 })
 
-const formattedStartDate = computed(() => {
-  return new Date(props.league.start_date).toLocaleDateString('pt-BR')
-})
+const formatVariant = computed(() => (props.league.format === 'CUP' ? 'default' : 'accent'))
+const formatText = computed(() => (props.league.format === 'CUP' ? 'Copa' : 'Liga'))
 
-const formattedEndDate = computed(() => {
-  return new Date(props.league.end_date).toLocaleDateString('pt-BR')
-})
+const formattedStartDate = computed(() =>
+  new Date(props.league.start_date).toLocaleDateString('pt-BR'),
+)
+const formattedEndDate = computed(() =>
+  new Date(props.league.end_date).toLocaleDateString('pt-BR'),
+)
 </script>
 
 <template>
-  <div
-    class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 hover:border-emerald-500/50 transition-all cursor-pointer"
-  >
-    <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-white">
-        {{ league.name }}
-      </h3>
-      <div class="flex gap-2">
-        <span
-          :class="formatBadge.class"
-          class="px-2.5 py-1 text-xs font-medium rounded-full"
-        >
-          {{ formatBadge.text }}
-        </span>
-        <span
-          :class="statusBadge.class"
-          class="px-2.5 py-1 text-xs font-medium rounded-full"
-        >
-          {{ statusBadge.text }}
-        </span>
-      </div>
-    </div>
-
-    <p v-if="league.description" class="text-slate-400 text-sm mb-4 line-clamp-2">
-      {{ league.description }}
-    </p>
-
-    <div class="grid grid-cols-2 gap-4 text-sm">
-      <div>
-        <p class="text-slate-500">Início</p>
-        <p class="font-medium text-white">{{ formattedStartDate }}</p>
-      </div>
-      <div>
-        <p class="text-slate-500">Fim</p>
-        <p class="font-medium text-white">{{ formattedEndDate }}</p>
-      </div>
-    </div>
-
-    <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between text-sm">
-      <div class="flex items-center gap-4">
-        <div v-if="league.format === 'CUP'">
-          <span class="text-slate-500">Times:</span>
-          <span class="ml-1 font-medium text-white">{{ league.team_count }}</span>
-        </div>
-        <div v-if="league.format === 'LEAGUE'">
-          <span class="text-slate-500">Tipo:</span>
-          <span class="ml-1 font-medium text-white">Ranking Individual</span>
+  <Card class="hover:border-primary/50 transition-all cursor-pointer">
+    <CardContent class="p-6 space-y-4">
+      <div class="flex justify-between items-start">
+        <h3 class="text-xl font-semibold text-foreground">{{ league.name }}</h3>
+        <div class="flex gap-2">
+          <Badge :variant="formatVariant">{{ formatText }}</Badge>
+          <Badge :variant="statusVariant">{{ statusText }}</Badge>
         </div>
       </div>
-      <div class="text-slate-500">
-        por {{ league.created_by_username }}
+
+      <p v-if="league.description" class="text-muted-foreground text-sm line-clamp-2">
+        {{ league.description }}
+      </p>
+
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div class="flex items-center gap-2">
+          <Calendar :size="14" class="text-muted-foreground" />
+          <div>
+            <p class="text-muted-foreground text-xs">Início</p>
+            <p class="font-medium text-foreground">{{ formattedStartDate }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <Calendar :size="14" class="text-muted-foreground" />
+          <div>
+            <p class="text-muted-foreground text-xs">Fim</p>
+            <p class="font-medium text-foreground">{{ formattedEndDate }}</p>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+
+      <div class="pt-4 border-t border-border flex justify-between text-sm">
+        <div class="flex items-center gap-4">
+          <div v-if="league.format === 'CUP'" class="flex items-center gap-1.5">
+            <Users :size="14" class="text-muted-foreground" />
+            <span class="text-muted-foreground">Times:</span>
+            <span class="font-medium text-foreground">{{ league.team_count }}</span>
+          </div>
+          <div v-else class="flex items-center gap-1.5">
+            <User :size="14" class="text-muted-foreground" />
+            <span class="font-medium text-foreground">Ranking Individual</span>
+          </div>
+        </div>
+        <span class="text-muted-foreground">por {{ league.created_by_username }}</span>
+      </div>
+    </CardContent>
+  </Card>
 </template>
 
 <style scoped>

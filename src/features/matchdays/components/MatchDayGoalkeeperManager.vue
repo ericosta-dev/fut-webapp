@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { useMatchDaysStore } from '../stores/matchdaysStore'
 import { usePlayersStore } from '@/stores/players'
+import { Badge, Button } from '@/components/ui'
+import { Shield, X, Plus, Loader2 } from 'lucide-vue-next'
 
 interface Props {
   communityId: string
@@ -18,7 +20,6 @@ const selectedPlayerId = ref('')
 const isSubmitting = ref(false)
 const formError = ref('')
 
-// ─── Computed ─────────────────────────────────────────────────────────────────
 const registeredGoalkeepers = computed(
   () => store.currentMatchDay?.matchday_goalkeepers ?? [],
 )
@@ -27,12 +28,10 @@ const registeredPlayerIds = computed(
   () => new Set(registeredGoalkeepers.value.map((gk) => gk.player)),
 )
 
-/** Community players not yet in the goalkeeper pool */
 const availablePlayers = computed(() =>
   playersStore.activePlayers.filter((p) => !registeredPlayerIds.value.has(p.id)),
 )
 
-// ─── Methods ──────────────────────────────────────────────────────────────────
 async function handleAdd() {
   formError.value = ''
   if (!selectedPlayerId.value) {
@@ -66,45 +65,43 @@ async function handleRemove(goalkeeperId: string) {
 </script>
 
 <template>
-  <div class="bg-slate-700/20 rounded-xl border border-slate-700/50 p-4 space-y-3">
+  <div class="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
     <div class="flex items-center gap-2">
-      <span class="text-lg">🧤</span>
-      <h4 class="text-sm font-semibold text-white">Goleiros da Súmula</h4>
-      <span class="text-xs text-slate-500">({{ registeredGoalkeepers.length }})</span>
+      <Shield :size="16" class="text-primary" />
+      <h4 class="text-sm font-semibold text-foreground">Goleiros da Súmula</h4>
+      <Badge variant="secondary" class="text-xs">{{ registeredGoalkeepers.length }}</Badge>
     </div>
 
-    <p class="text-xs text-slate-400">
+    <p class="text-xs text-muted-foreground">
       Registre aqui os goleiros disponíveis para esta súmula. Apenas esses jogadores poderão
       ser selecionados como goleiros nas partidas.
     </p>
 
-    <!-- Registered goalkeepers list -->
     <div v-if="registeredGoalkeepers.length > 0" class="flex flex-wrap gap-2">
       <div
         v-for="gk in registeredGoalkeepers"
         :key="gk.id"
-        class="flex items-center gap-1.5 bg-slate-700/60 rounded-full px-3 py-1.5 text-sm"
+        class="flex items-center gap-1.5 bg-card rounded-full border border-border px-3 py-1.5 text-sm"
       >
-        <span class="text-white">{{ gk.player_detail.nickname || gk.player_detail.name }}</span>
+        <span class="text-foreground">{{ gk.player_detail.nickname || gk.player_detail.name }}</span>
         <button
-          class="text-slate-500 hover:text-red-400 transition-colors ml-1"
+          class="text-muted-foreground hover:text-destructive transition-colors ml-1"
           title="Remover goleiro"
           @click="handleRemove(gk.id)"
         >
-          ✕
+          <X :size="12" />
         </button>
       </div>
     </div>
 
-    <p v-else class="text-xs text-slate-500 italic">
+    <p v-else class="text-xs text-muted-foreground italic">
       Nenhum goleiro registrado para esta súmula.
     </p>
 
-    <!-- Add form -->
     <div v-if="availablePlayers.length > 0" class="flex gap-2 items-center">
       <select
         v-model="selectedPlayerId"
-        class="flex-1 bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="flex-1 bg-card border border-border text-foreground text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
       >
         <option value="">Adicionar goleiro...</option>
         <option v-for="p in availablePlayers" :key="p.id" :value="p.id">
@@ -112,15 +109,18 @@ async function handleRemove(goalkeeperId: string) {
         </option>
       </select>
 
-      <button
+      <Button
         :disabled="isSubmitting || !selectedPlayerId"
-        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors shrink-0"
+        variant="accent"
+        size="sm"
         @click="handleAdd"
       >
-        {{ isSubmitting ? '...' : '+ Goleiro' }}
-      </button>
+        <Loader2 v-if="isSubmitting" :size="12" class="animate-spin" />
+        <Plus v-else :size="12" />
+        Goleiro
+      </Button>
     </div>
 
-    <p v-if="formError" class="text-red-400 text-xs">{{ formError }}</p>
+    <p v-if="formError" class="text-destructive text-xs">{{ formError }}</p>
   </div>
 </template>

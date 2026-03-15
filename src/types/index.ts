@@ -64,6 +64,38 @@ export interface PlayerCreate {
   status?: PlayerStatus
 }
 
+export interface MatchDayHistory {
+  matchday_id: string
+  matchday_date: string
+  matchday_label: string
+  league_id: string
+  league_name: string
+  goals: number
+  assists: number
+  own_goals: number
+  matches: number
+  wins: number
+  draws: number
+  losses: number
+}
+
+export interface RankingEntry {
+  rank: number
+  player_id: string
+  player_name: string
+  total: number
+}
+
+export interface PlayerRanking {
+  goals_rank: number
+  goals_total: number
+  assists_rank: number
+  assists_total: number
+  total_players: number
+  top_goals: RankingEntry[]
+  top_assists: RankingEntry[]
+}
+
 export interface PlayerStats {
   player_id: string
   player_name: string
@@ -71,6 +103,12 @@ export interface PlayerStats {
   assists: number
   own_goals: number
   matches_played: number
+  wins: number
+  draws: number
+  losses: number
+  goalkeeper_duties: number
+  history: MatchDayHistory[]
+  ranking: PlayerRanking
 }
 
 // Auth types

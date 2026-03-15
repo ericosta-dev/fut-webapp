@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useMatchDaysStore } from '../stores/matchdaysStore'
+import { Card, CardContent, Badge } from '@/components/ui'
+import { Trophy, Target, Crosshair, AlertCircle, Shield } from 'lucide-vue-next'
 import type { Match } from '../types'
 
 const store = useMatchDaysStore()
@@ -9,7 +11,6 @@ const matchday = computed(() => store.currentMatchDay)
 const matches = computed(() => store.currentMatches)
 const standings = computed(() => store.standings)
 
-// ─── Top Scorers ──────────────────────────────────────────────────────────────
 interface ScorerEntry {
   playerId: string
   name: string
@@ -19,7 +20,6 @@ interface ScorerEntry {
 
 const scorerMap = computed(() => {
   const map: Record<string, ScorerEntry> = {}
-
   for (const match of matches.value) {
     for (const goal of match.goals) {
       if (!goal.is_own_goal) {
@@ -37,8 +37,7 @@ const scorerMap = computed(() => {
         if (!map[goal.assisted_by]) {
           map[goal.assisted_by] = {
             playerId: goal.assisted_by,
-            name:
-              goal.assisted_by_detail.nickname || goal.assisted_by_detail.name || '?',
+            name: goal.assisted_by_detail.nickname || goal.assisted_by_detail.name || '?',
             goals: 0,
             assists: 0,
           }
@@ -62,7 +61,6 @@ const topAssists = computed(() =>
     .sort((a, b) => b.assists - a.assists),
 )
 
-// ─── Own Goals ─────────────────────────────────────────────────────────────────
 interface OwnGoalEntry {
   player: string
   matchLabel: string
@@ -83,7 +81,6 @@ const ownGoals = computed<OwnGoalEntry[]>(() => {
   return result
 })
 
-// ─── Goalkeepers per match ─────────────────────────────────────────────────────
 interface GkEntry {
   matchLabel: string
   home: string | null
@@ -102,7 +99,6 @@ function gkEntries(match: Match): GkEntry {
 
 const goalkeepersPerMatch = computed(() => matches.value.map(gkEntries))
 
-// ─── Goalkeeper Ranking (least goals conceded) ────────────────────────────────
 interface GoalkeeperRanking {
   playerId: string
   name: string
@@ -112,11 +108,9 @@ interface GoalkeeperRanking {
 
 const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
   const map: Record<string, GoalkeeperRanking> = {}
-
   for (const match of matches.value) {
     const homeGk = match.goalkeepers.find((gk) => gk.team === match.home_team)
     const awayGk = match.goalkeepers.find((gk) => gk.team === match.away_team)
-
     if (homeGk?.player_detail) {
       if (!map[homeGk.player]) {
         map[homeGk.player] = {
@@ -129,7 +123,6 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
       map[homeGk.player]!.gamesPlayed++
       map[homeGk.player]!.goalsConceded += match.away_score
     }
-
     if (awayGk?.player_detail) {
       if (!map[awayGk.player]) {
         map[awayGk.player] = {
@@ -143,7 +136,6 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
       map[awayGk.player]!.goalsConceded += match.home_score
     }
   }
-
   return Object.values(map).sort((a, b) => {
     if (a.goalsConceded !== b.goalsConceded) return a.goalsConceded - b.goalsConceded
     return b.gamesPlayed - a.gamesPlayed
@@ -154,15 +146,15 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
 <template>
   <div v-if="matchday" class="space-y-6">
 
-    <!-- ── Tabela de Classificação ── -->
+    <!-- Standings -->
     <section>
-      <h3 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
-        🏆 Classificação
+      <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+        <Trophy :size="16" class="text-accent" /> Classificação
       </h3>
-      <div class="overflow-x-auto rounded-xl border border-slate-700/50">
+      <div class="overflow-x-auto rounded-xl border border-border">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-slate-800/80 text-slate-400 uppercase text-xs tracking-wide">
+            <tr class="bg-muted text-muted-foreground uppercase text-xs tracking-wide">
               <th class="text-left px-4 py-2 font-medium">Time</th>
               <th class="px-3 py-2 font-medium text-center">P</th>
               <th class="px-3 py-2 font-medium text-center">J</th>
@@ -179,30 +171,30 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
               v-for="(s, idx) in standings"
               :key="s.teamId"
               :class="[
-                'border-t border-slate-700/30 transition-colors',
-                idx === 0 ? 'bg-emerald-500/5' : 'hover:bg-slate-800/40',
+                'border-t border-border transition-colors',
+                idx === 0 ? 'bg-accent/5' : 'hover:bg-muted/40',
               ]"
             >
-              <td class="px-4 py-2 text-slate-200 font-medium">
-                <span v-if="idx === 0" class="text-emerald-400 mr-1">★</span>
+              <td class="px-4 py-2 text-foreground font-medium">
+                <span v-if="idx === 0" class="text-accent mr-1">★</span>
                 {{ s.name }}
               </td>
-              <td class="px-3 py-2 text-center font-bold text-white tabular-nums">{{ s.points }}</td>
-              <td class="px-3 py-2 text-center text-slate-400 tabular-nums">{{ s.played }}</td>
-              <td class="px-3 py-2 text-center text-emerald-400 tabular-nums">{{ s.wins }}</td>
-              <td class="px-3 py-2 text-center text-slate-400 tabular-nums">{{ s.draws }}</td>
-              <td class="px-3 py-2 text-center text-red-400 tabular-nums">{{ s.losses }}</td>
-              <td class="px-3 py-2 text-center text-slate-300 tabular-nums">{{ s.goalsFor }}</td>
-              <td class="px-3 py-2 text-center text-slate-300 tabular-nums">{{ s.goalsAgainst }}</td>
+              <td class="px-3 py-2 text-center font-bold text-foreground tabular-nums">{{ s.points }}</td>
+              <td class="px-3 py-2 text-center text-muted-foreground tabular-nums">{{ s.played }}</td>
+              <td class="px-3 py-2 text-center text-accent tabular-nums">{{ s.wins }}</td>
+              <td class="px-3 py-2 text-center text-muted-foreground tabular-nums">{{ s.draws }}</td>
+              <td class="px-3 py-2 text-center text-destructive tabular-nums">{{ s.losses }}</td>
+              <td class="px-3 py-2 text-center text-foreground/80 tabular-nums">{{ s.goalsFor }}</td>
+              <td class="px-3 py-2 text-center text-foreground/80 tabular-nums">{{ s.goalsAgainst }}</td>
               <td
                 class="px-3 py-2 text-center tabular-nums font-medium"
-                :class="s.goalDifference > 0 ? 'text-emerald-400' : s.goalDifference < 0 ? 'text-red-400' : 'text-slate-400'"
+                :class="s.goalDifference > 0 ? 'text-accent' : s.goalDifference < 0 ? 'text-destructive' : 'text-muted-foreground'"
               >
                 {{ s.goalDifference > 0 ? '+' : '' }}{{ s.goalDifference }}
               </td>
             </tr>
             <tr v-if="standings.length === 0">
-              <td colspan="9" class="px-4 py-4 text-center text-slate-500 text-sm italic">
+              <td colspan="9" class="px-4 py-4 text-center text-muted-foreground text-sm italic">
                 Nenhum jogo registrado ainda.
               </td>
             </tr>
@@ -211,122 +203,130 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
       </div>
     </section>
 
-    <!-- ── Placares ── -->
+    <!-- Scores -->
     <section>
-      <h3 class="text-base font-semibold text-white mb-3">⚽ Placares</h3>
+      <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+        <Target :size="16" class="text-primary" /> Placares
+      </h3>
       <div class="space-y-2">
         <div
           v-for="m in matches"
           :key="m.id"
-          class="flex items-center gap-3 bg-slate-800/40 rounded-lg px-4 py-2.5 text-sm"
+          class="flex items-center gap-3 bg-muted/40 rounded-lg px-4 py-2.5 text-sm"
         >
-          <span class="text-slate-200 flex-1 text-right">{{ m.home_team_detail?.name }}</span>
-          <span class="font-bold text-white tabular-nums bg-slate-900/60 px-2 py-0.5 rounded text-base">
+          <span class="text-foreground/90 flex-1 text-right">{{ m.home_team_detail?.name }}</span>
+          <span class="font-bold text-foreground tabular-nums bg-background px-2 py-0.5 rounded border border-border text-base">
             {{ m.home_score }} × {{ m.away_score }}
           </span>
-          <span class="text-slate-200 flex-1">{{ m.away_team_detail?.name }}</span>
+          <span class="text-foreground/90 flex-1">{{ m.away_team_detail?.name }}</span>
         </div>
-        <p v-if="matches.length === 0" class="text-sm text-slate-500 italic">
+        <p v-if="matches.length === 0" class="text-sm text-muted-foreground italic">
           Nenhuma partida registrada.
         </p>
       </div>
     </section>
 
-    <!-- ── Artilheiros & Assistências ── -->
+    <!-- Scorers & Assists -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Artilheiros -->
       <section>
-        <h3 class="text-base font-semibold text-white mb-3">🥇 Artilheiros</h3>
+        <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Trophy :size="16" class="text-accent" /> Artilheiros
+        </h3>
         <ol class="space-y-1.5">
           <li
             v-for="(s, idx) in topScorers"
             :key="s.playerId"
-            class="flex items-center justify-between bg-slate-800/40 rounded-lg px-3 py-2 text-sm"
+            class="flex items-center justify-between bg-muted/40 rounded-lg px-3 py-2 text-sm"
           >
-            <span class="text-slate-400 w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
-            <span class="text-slate-200 flex-1">{{ s.name }}</span>
-            <span class="text-emerald-400 font-bold tabular-nums">{{ s.goals }} gol{{ s.goals !== 1 ? 's' : '' }}</span>
+            <span class="text-muted-foreground w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
+            <span class="text-foreground/90 flex-1">{{ s.name }}</span>
+            <Badge variant="accent" class="tabular-nums">{{ s.goals }} gol{{ s.goals !== 1 ? 's' : '' }}</Badge>
           </li>
-          <li v-if="topScorers.length === 0" class="text-sm text-slate-500 italic px-1">
+          <li v-if="topScorers.length === 0" class="text-sm text-muted-foreground italic px-1">
             Nenhum gol registrado.
           </li>
         </ol>
       </section>
 
-      <!-- Assistências -->
       <section>
-        <h3 class="text-base font-semibold text-white mb-3">🎯 Assistências</h3>
+        <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Crosshair :size="16" class="text-primary" /> Assistências
+        </h3>
         <ol class="space-y-1.5">
           <li
             v-for="(s, idx) in topAssists"
             :key="s.playerId"
-            class="flex items-center justify-between bg-slate-800/40 rounded-lg px-3 py-2 text-sm"
+            class="flex items-center justify-between bg-muted/40 rounded-lg px-3 py-2 text-sm"
           >
-            <span class="text-slate-400 w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
-            <span class="text-slate-200 flex-1">{{ s.name }}</span>
-            <span class="text-blue-400 font-bold tabular-nums">{{ s.assists }}</span>
+            <span class="text-muted-foreground w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
+            <span class="text-foreground/90 flex-1">{{ s.name }}</span>
+            <Badge variant="default" class="tabular-nums">{{ s.assists }}</Badge>
           </li>
-          <li v-if="topAssists.length === 0" class="text-sm text-slate-500 italic px-1">
+          <li v-if="topAssists.length === 0" class="text-sm text-muted-foreground italic px-1">
             Nenhuma assistência registrada.
           </li>
         </ol>
       </section>
     </div>
 
-    <!-- ── Gols Contra ── -->
+    <!-- Own Goals -->
     <section v-if="ownGoals.length > 0">
-      <h3 class="text-base font-semibold text-white mb-3">🔴 Gols Contra</h3>
+      <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+        <AlertCircle :size="16" class="text-destructive" /> Gols Contra
+      </h3>
       <ul class="space-y-1.5">
         <li
           v-for="(og, idx) in ownGoals"
           :key="idx"
-          class="flex items-center gap-3 bg-slate-800/40 rounded-lg px-3 py-2 text-sm"
+          class="flex items-center gap-3 bg-muted/40 rounded-lg px-3 py-2 text-sm"
         >
-          <span class="text-red-400 font-medium">{{ og.player }}</span>
-          <span class="text-slate-500 text-xs">em {{ og.matchLabel }}</span>
+          <span class="text-destructive font-medium">{{ og.player }}</span>
+          <span class="text-muted-foreground text-xs">em {{ og.matchLabel }}</span>
         </li>
       </ul>
     </section>
 
-    <!-- ── Goleiros ── -->
+    <!-- Goalkeepers -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Goleiros por partida -->
       <section>
-        <h3 class="text-base font-semibold text-white mb-3">🧤 Goleiros por Partida</h3>
+        <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Shield :size="16" class="text-primary" /> Goleiros por Partida
+        </h3>
         <div class="space-y-2">
           <div
             v-for="entry in goalkeepersPerMatch"
             :key="entry.matchLabel"
-            class="bg-slate-800/40 rounded-lg px-4 py-2.5 text-sm"
+            class="bg-muted/40 rounded-lg px-4 py-2.5 text-sm"
           >
-            <p class="text-slate-400 text-xs mb-1">{{ entry.matchLabel }}</p>
-            <div class="flex gap-4 text-slate-200">
+            <p class="text-muted-foreground text-xs mb-1">{{ entry.matchLabel }}</p>
+            <div class="flex gap-4 text-foreground/90">
               <span>{{ entry.home ?? '—' }}</span>
-              <span class="text-slate-600">•</span>
+              <span class="text-muted-foreground/40">•</span>
               <span>{{ entry.away ?? '—' }}</span>
             </div>
           </div>
-          <p v-if="matches.length === 0" class="text-sm text-slate-500 italic">
+          <p v-if="matches.length === 0" class="text-sm text-muted-foreground italic">
             Nenhuma partida registrada.
           </p>
         </div>
       </section>
 
-      <!-- Ranking de goleiros menos vazados -->
       <section v-if="goalkeeperRanking.length > 0">
-        <h3 class="text-base font-semibold text-white mb-3">🛡️ Menos Vazados</h3>
+        <h3 class="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Shield :size="16" class="text-accent" /> Menos Vazados
+        </h3>
         <ol class="space-y-1.5">
           <li
             v-for="(gk, idx) in goalkeeperRanking"
             :key="gk.playerId"
-            class="flex items-center justify-between bg-slate-800/40 rounded-lg px-3 py-2 text-sm"
+            class="flex items-center justify-between bg-muted/40 rounded-lg px-3 py-2 text-sm"
           >
-            <span class="text-slate-400 w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
-            <span class="text-slate-200 flex-1">{{ gk.name }}</span>
-            <span class="text-xs text-slate-500 mr-2">{{ gk.gamesPlayed }}J</span>
+            <span class="text-muted-foreground w-5 text-xs tabular-nums">{{ idx + 1 }}.</span>
+            <span class="text-foreground/90 flex-1">{{ gk.name }}</span>
+            <span class="text-xs text-muted-foreground mr-2">{{ gk.gamesPlayed }}J</span>
             <span
               class="font-bold tabular-nums"
-              :class="gk.goalsConceded === 0 ? 'text-emerald-400' : 'text-slate-300'"
+              :class="gk.goalsConceded === 0 ? 'text-accent' : 'text-foreground/80'"
             >
               {{ gk.goalsConceded }} gc
             </span>
@@ -337,7 +337,7 @@ const goalkeeperRanking = computed<GoalkeeperRanking[]>(() => {
 
   </div>
 
-  <div v-else class="text-center py-8 text-slate-500">
+  <div v-else class="text-center py-8 text-muted-foreground">
     Carregando resumo...
   </div>
 </template>
