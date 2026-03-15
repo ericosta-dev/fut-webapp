@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import {
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuPortal,
   DropdownMenuRoot,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
 } from 'radix-vue'
 </script>
 

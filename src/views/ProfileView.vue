@@ -108,7 +108,7 @@ const badges = [
                 class="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
               >
                 <span class="w-8 h-8 rounded-md bg-primary/20 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                  {{ community.name[0].toUpperCase() }}
+                  {{ community.name.charAt(0).toUpperCase() || '?' }}
                 </span>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">

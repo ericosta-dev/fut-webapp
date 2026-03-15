@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'radix-vue'
-import { type HTMLAttributes, computed } from 'vue'
+import { TabsRoot } from 'radix-vue'
+import { type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{

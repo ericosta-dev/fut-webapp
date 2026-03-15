@@ -102,7 +102,7 @@ const handleSubmit = async () => {
             <CardContent class="pt-6">
               <div class="flex items-start gap-3">
                 <span class="w-10 h-10 rounded-lg bg-primary/20 text-primary text-sm font-bold flex items-center justify-center shrink-0">
-                  {{ community.name[0].toUpperCase() }}
+                  {{ community.name.charAt(0).toUpperCase() || '?' }}
                 </span>
                 <div class="flex-1 min-w-0">
                   <h3 class="font-semibold text-foreground truncate group-hover:text-primary transition-colors">

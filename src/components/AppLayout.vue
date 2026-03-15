@@ -83,10 +83,6 @@ const leaguesPath = computed(() =>
   communityId.value ? `/communities/${communityId.value}` : '/communities',
 )
 
-const userInitial = computed(() =>
-  (authStore.user?.first_name?.[0] || authStore.user?.username?.[0] || 'U').toUpperCase(),
-)
-
 const userName = computed(
   () => authStore.user?.first_name || authStore.user?.username || 'Usuário',
 )

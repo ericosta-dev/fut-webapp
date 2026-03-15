@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import {
   SelectContent,
-  SelectItem,
   SelectPortal,
   SelectRoot,
   SelectTrigger,
   SelectValue,
   SelectViewport,
-  SelectItemText,
-  SelectItemIndicator,
 } from 'radix-vue'
 import { type HTMLAttributes, computed } from 'vue'
 import { cn } from '@/lib/utils'
-import { Check, ChevronDown } from 'lucide-vue-next'
+import { ChevronDown } from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue?: string
