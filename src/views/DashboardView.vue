@@ -21,9 +21,11 @@ import { useCommunitiesStore } from '@/stores/communities'
 import { playersApi } from '@/features/players/api'
 import { leaguesApi } from '@/features/leagues/api'
 import type { Player, PlayerStats } from '@/types'
-import type { LeagueList } from '@/features/leagues/types'
+import type { LeagueList, LeagueStandings } from '@/features/leagues/types'
 import AppLayout from '@/components/AppLayout.vue'
 import { Card, Badge, Select, SelectItem, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
+import CupStandings from '@/features/leagues/components/CupStandings.vue'
+import CupMatchdayResults from '@/features/leagues/components/CupMatchdayResults.vue'
 import {
   Zap,
   CalendarDays,
@@ -63,6 +65,10 @@ const leagues = ref<LeagueList[]>([])
 const leaguesLoading = ref(false)
 const selectedLeagueId = ref<string>('all')
 
+// CUP standings
+const cupStandings = ref<LeagueStandings | null>(null)
+const cupLoading = ref(false)
+
 // ── Data loading ─────────────────────────────────────────────────────────────
 
 async function loadLeagues(communityId: string) {
@@ -95,6 +101,7 @@ async function loadPlayerStats(communityId: string) {
 
 async function loadCommunityData(communityId: string) {
   selectedLeagueId.value = 'all'
+  cupStandings.value = null
   await Promise.all([loadLeagues(communityId), loadPlayerStats(communityId)])
 }
 
@@ -119,6 +126,7 @@ watch(
       playerStats.value = null
       leagues.value = []
       selectedLeagueId.value = 'all'
+      cupStandings.value = null
     }
   },
 )
@@ -137,6 +145,23 @@ watch(selectedLeagueId, async () => {
     } finally {
       statsLoading.value = false
     }
+  }
+  // Fetch CUP standings when a CUP league is selected
+  const league = leagues.value.find((l) => l.id === selectedLeagueId.value)
+  if (league?.format === 'CUP' && communitiesStore.currentCommunity) {
+    cupLoading.value = true
+    try {
+      cupStandings.value = await leaguesApi.getStandings(
+        communitiesStore.currentCommunity.id,
+        league.id,
+      )
+    } catch {
+      cupStandings.value = null
+    } finally {
+      cupLoading.value = false
+    }
+  } else {
+    cupStandings.value = null
   }
 })
 
@@ -407,6 +432,22 @@ const lineChartOptions = {
               </Select>
             </div>
           </div>
+
+          <!-- ── CUP Standings & Results ────────────────────────────────── -->
+          <template v-if="selectedLeagueId !== 'all' && leagues.find((l) => l.id === selectedLeagueId)?.format === 'CUP'">
+            <div v-if="cupLoading" class="flex items-center justify-center py-8">
+              <Loader2 :size="28" class="animate-spin text-primary" />
+            </div>
+            <template v-else-if="cupStandings">
+              <div
+                :class="cupLoading ? 'opacity-40 pointer-events-none select-none' : ''"
+                class="space-y-6 transition-opacity duration-150"
+              >
+                <CupStandings :standings="cupStandings.standings" />
+                <CupMatchdayResults :matchdays="cupStandings.matchdays" />
+              </div>
+            </template>
+          </template>
 
           <!-- Re-loading stats (initial: no data yet) -->
           <div v-if="statsLoading && !playerStats" class="flex items-center justify-center py-10">

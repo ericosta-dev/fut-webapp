@@ -69,3 +69,39 @@ export interface LeagueList extends BaseModel {
   is_finished: boolean
   team_count: number
 }
+
+// CUP League Standings
+export interface CupTeamStanding {
+  team_id: string
+  team_name: string
+  points: number
+  played: number
+  wins: number
+  draws: number
+  losses: number
+  goals_for: number
+  goals_against: number
+  goal_difference: number
+}
+
+export interface MatchResult {
+  match_id: string
+  home_team_name: string
+  away_team_name: string
+  home_score: number
+  away_score: number
+  order: number
+}
+
+export interface MatchDaySummary {
+  id: string
+  date: string
+  label: string
+  status: string
+  matches: MatchResult[]
+}
+
+export interface LeagueStandings {
+  standings: CupTeamStanding[]
+  matchdays: MatchDaySummary[]
+}

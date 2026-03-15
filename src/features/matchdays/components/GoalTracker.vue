@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMatchDaysStore } from '../stores/matchdaysStore'
-import { Button, Label } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { X, Plus, Loader2 } from 'lucide-vue-next'
 import type { Match } from '../types'
 

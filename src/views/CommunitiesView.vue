@@ -14,7 +14,7 @@ import {
 } from '@/components/ui'
 import Dialog from '@/components/ui/Dialog.vue'
 import type { CommunityCreate } from '@/types'
-import { Plus, Users, Trophy, Loader2 } from 'lucide-vue-next'
+import { Plus, Users, Loader2 } from 'lucide-vue-next'
 
 const communitiesStore = useCommunitiesStore()
 

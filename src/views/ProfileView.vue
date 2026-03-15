@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCommunitiesStore } from '@/stores/communities'
 import AppLayout from '@/components/AppLayout.vue'
-import { Card, CardContent, CardHeader, CardTitle, Avatar, Badge, Separator } from '@/components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Avatar, Badge } from '@/components/ui'
 import {
   Users,
   Trophy,

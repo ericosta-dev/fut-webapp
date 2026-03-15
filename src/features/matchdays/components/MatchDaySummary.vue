@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useMatchDaysStore } from '../stores/matchdaysStore'
-import { Card, CardContent, Badge } from '@/components/ui'
+import { Badge } from '@/components/ui'
 import { Trophy, Target, Crosshair, AlertCircle, Shield } from 'lucide-vue-next'
 import type { Match } from '../types'
 

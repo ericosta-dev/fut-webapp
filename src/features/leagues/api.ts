@@ -4,6 +4,7 @@ import type {
   League,
   LeagueCreate,
   LeagueList,
+  LeagueStandings,
   LeagueUpdate,
   Team,
   TeamCreate,
@@ -105,5 +106,13 @@ export const leaguesApi = {
     await apiClient.delete(
       `/communities/${communityId}/leagues/${leagueId}/teams/${teamId}/`
     )
+  },
+
+  // CUP standings endpoint
+  async getStandings(communityId: string, leagueId: string): Promise<LeagueStandings> {
+    const response = await apiClient.get<LeagueStandings>(
+      `/communities/${communityId}/leagues/${leagueId}/standings/`
+    )
+    return response.data
   },
 }
