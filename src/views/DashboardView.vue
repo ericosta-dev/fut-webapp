@@ -21,11 +21,9 @@ import { useCommunitiesStore } from '@/stores/communities'
 import { playersApi } from '@/features/players/api'
 import { leaguesApi } from '@/features/leagues/api'
 import type { Player, PlayerStats } from '@/types'
-import type { LeagueList, LeagueStandings } from '@/features/leagues/types'
+import type { LeagueList } from '@/features/leagues/types'
 import AppLayout from '@/components/AppLayout.vue'
-import { Card, Badge, Select, SelectItem, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
-import CupStandings from '@/features/leagues/components/CupStandings.vue'
-import CupMatchdayResults from '@/features/leagues/components/CupMatchdayResults.vue'
+import { Card, Badge, Select, SelectItem } from '@/components/ui'
 import {
   Zap,
   CalendarDays,
@@ -33,7 +31,6 @@ import {
   User,
   BarChart3,
   TrendingUp,
-  Trophy,
   Handshake,
   Swords,
 } from 'lucide-vue-next'
@@ -64,10 +61,6 @@ const statsError = ref<string | null>(null)
 const leagues = ref<LeagueList[]>([])
 const leaguesLoading = ref(false)
 const selectedLeagueId = ref<string>('all')
-
-// CUP standings
-const cupStandings = ref<LeagueStandings | null>(null)
-const cupLoading = ref(false)
 
 // ── Data loading ─────────────────────────────────────────────────────────────
 
@@ -101,7 +94,6 @@ async function loadPlayerStats(communityId: string) {
 
 async function loadCommunityData(communityId: string) {
   selectedLeagueId.value = 'all'
-  cupStandings.value = null
   await Promise.all([loadLeagues(communityId), loadPlayerStats(communityId)])
 }
 
@@ -126,7 +118,6 @@ watch(
       playerStats.value = null
       leagues.value = []
       selectedLeagueId.value = 'all'
-      cupStandings.value = null
     }
   },
 )
@@ -146,23 +137,6 @@ watch(selectedLeagueId, async () => {
       statsLoading.value = false
     }
   }
-  // Fetch CUP standings when a CUP league is selected
-  const league = leagues.value.find((l) => l.id === selectedLeagueId.value)
-  if (league?.format === 'CUP' && communitiesStore.currentCommunity) {
-    cupLoading.value = true
-    try {
-      cupStandings.value = await leaguesApi.getStandings(
-        communitiesStore.currentCommunity.id,
-        league.id,
-      )
-    } catch {
-      cupStandings.value = null
-    } finally {
-      cupLoading.value = false
-    }
-  } else {
-    cupStandings.value = null
-  }
 })
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -179,24 +153,6 @@ const selectedLeagueName = computed(() => {
 
 const positionLabels: Record<string, string> = {
   FWD: 'Atacante', MID: 'Meio-Campo', DEF: 'Defensor', GK: 'Goleiro',
-}
-
-// ── Ranking leaderboard helpers ───────────────────────────────────────────────
-
-const myPlayerId = computed(() => playerStats.value?.player_id ?? null)
-
-const myGoalsInTop10 = computed(() =>
-  playerStats.value?.ranking.top_goals.some((e) => e.player_id === myPlayerId.value) ?? false,
-)
-const myAssistsInTop10 = computed(() =>
-  playerStats.value?.ranking.top_assists.some((e) => e.player_id === myPlayerId.value) ?? false,
-)
-
-const rankBadgeClass = (rank: number) => {
-  if (rank === 1) return 'bg-warning/20 text-warning border border-warning/30'
-  if (rank === 2) return 'bg-muted-foreground/20 text-muted-foreground border border-muted-foreground/30'
-  if (rank === 3) return 'bg-accent/10 text-accent border border-accent/30'
-  return 'bg-muted text-muted-foreground'
 }
 
 // ── Bar chart ─────────────────────────────────────────────────────────────────
@@ -433,22 +389,6 @@ const lineChartOptions = {
             </div>
           </div>
 
-          <!-- ── CUP Standings & Results ────────────────────────────────── -->
-          <template v-if="selectedLeagueId !== 'all' && leagues.find((l) => l.id === selectedLeagueId)?.format === 'CUP'">
-            <div v-if="cupLoading" class="flex items-center justify-center py-8">
-              <Loader2 :size="28" class="animate-spin text-primary" />
-            </div>
-            <template v-else-if="cupStandings">
-              <div
-                :class="cupLoading ? 'opacity-40 pointer-events-none select-none' : ''"
-                class="space-y-6 transition-opacity duration-150"
-              >
-                <CupStandings :standings="cupStandings.standings" />
-                <CupMatchdayResults :matchdays="cupStandings.matchdays" />
-              </div>
-            </template>
-          </template>
-
           <!-- Re-loading stats (initial: no data yet) -->
           <div v-if="statsLoading && !playerStats" class="flex items-center justify-center py-10">
             <Loader2 :size="28" class="animate-spin text-primary" />
@@ -545,93 +485,6 @@ const lineChartOptions = {
               </div>
             </Card>
 
-            <!-- ── Ranking ────────────────────────────────────────────────── -->
-            <Card class="p-6">
-              <div class="flex items-center gap-2 mb-5">
-                <Trophy :size="18" class="text-warning" />
-                <h3 class="text-sm font-semibold text-foreground">Ranking na comunidade</h3>
-                <span class="text-xs text-muted-foreground ml-auto">
-                  {{ playerStats.ranking.total_players }} jogadores
-                </span>
-              </div>
-
-              <Tabs default-value="goals">
-                <TabsList class="w-full mb-4">
-                  <TabsTrigger value="goals" class="flex-1">Artilharia</TabsTrigger>
-                  <TabsTrigger value="assists" class="flex-1">Assistências</TabsTrigger>
-                </TabsList>
-
-                <!-- Goals leaderboard -->
-                <TabsContent value="goals">
-                  <div class="space-y-1.5">
-                    <div
-                      v-for="entry in playerStats.ranking.top_goals"
-                      :key="entry.player_id"
-                      class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-                      :class="entry.player_id === myPlayerId ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'"
-                    >
-                      <span
-                        class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                        :class="rankBadgeClass(entry.rank)"
-                      >#{{ entry.rank }}</span>
-                      <span class="flex-1 text-sm font-medium text-foreground truncate">{{ entry.player_name }}</span>
-                      <span class="text-sm font-semibold text-primary shrink-0">{{ entry.total }} gols</span>
-                    </div>
-
-                    <!-- Current player if outside top 10 -->
-                    <template v-if="!myGoalsInTop10">
-                      <div class="flex items-center gap-2 py-1 px-1">
-                        <div class="flex-1 border-t border-dashed border-border" />
-                        <span class="text-xs text-muted-foreground shrink-0">você</span>
-                        <div class="flex-1 border-t border-dashed border-border" />
-                      </div>
-                      <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-primary/20 text-primary border border-primary/30">
-                          #{{ playerStats.ranking.goals_rank }}
-                        </span>
-                        <span class="flex-1 text-sm font-medium text-foreground truncate">{{ playerStats.player_name }}</span>
-                        <span class="text-sm font-semibold text-primary shrink-0">{{ playerStats.ranking.goals_total }} gols</span>
-                      </div>
-                    </template>
-                  </div>
-                </TabsContent>
-
-                <!-- Assists leaderboard -->
-                <TabsContent value="assists">
-                  <div class="space-y-1.5">
-                    <div
-                      v-for="entry in playerStats.ranking.top_assists"
-                      :key="entry.player_id"
-                      class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-                      :class="entry.player_id === myPlayerId ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'"
-                    >
-                      <span
-                        class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                        :class="rankBadgeClass(entry.rank)"
-                      >#{{ entry.rank }}</span>
-                      <span class="flex-1 text-sm font-medium text-foreground truncate">{{ entry.player_name }}</span>
-                      <span class="text-sm font-semibold shrink-0" style="color:rgb(198,255,51)">{{ entry.total }} assist.</span>
-                    </div>
-
-                    <!-- Current player if outside top 10 -->
-                    <template v-if="!myAssistsInTop10">
-                      <div class="flex items-center gap-2 py-1 px-1">
-                        <div class="flex-1 border-t border-dashed border-border" />
-                        <span class="text-xs text-muted-foreground shrink-0">você</span>
-                        <div class="flex-1 border-t border-dashed border-border" />
-                      </div>
-                      <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-primary/20 text-primary border border-primary/30">
-                          #{{ playerStats.ranking.assists_rank }}
-                        </span>
-                        <span class="flex-1 text-sm font-medium text-foreground truncate">{{ playerStats.player_name }}</span>
-                        <span class="text-sm font-semibold shrink-0" style="color:rgb(198,255,51)">{{ playerStats.ranking.assists_total }} assist.</span>
-                      </div>
-                    </template>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
             </div> <!-- end opacity wrapper -->
           </template>
         </template>

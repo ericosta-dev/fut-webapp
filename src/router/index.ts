@@ -52,9 +52,27 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/communities/:id/competitions',
+      name: 'community-competitions',
+      component: () => import('@/views/CompetitionsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/communities/:id/competitions/new',
+      name: 'competition-create',
+      component: () => import('@/views/CreateCompetitionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/communities/:communityId/leagues/:leagueId',
       name: 'league-detail',
       component: () => import('@/views/LeagueDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/communities/:communityId/leagues/:leagueId/settings',
+      name: 'league-settings',
+      component: () => import('@/views/LeagueSettingsView.vue'),
       meta: { requiresAuth: true },
     },
     {

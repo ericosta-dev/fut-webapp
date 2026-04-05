@@ -1,5 +1,12 @@
 import { apiClient } from '@/api'
-import type { Community, CommunityCreate, CommunitySettings, PaginatedResponse } from '@/types'
+import type {
+  CalendarMatchDay,
+  Community,
+  CommunityCreate,
+  CommunityRanking,
+  CommunitySettings,
+  PaginatedResponse,
+} from '@/types'
 
 export const communitiesApi = {
   async list(): Promise<PaginatedResponse<Community>> {
@@ -29,5 +36,24 @@ export const communitiesApi = {
 
   async delete(id: string): Promise<void> {
     await apiClient.delete(`/communities/${id}/`)
+  },
+
+  async getRankings(
+    id: string,
+    leagueId?: string,
+  ): Promise<CommunityRanking> {
+    const params = leagueId ? { league: leagueId } : {}
+    const response = await apiClient.get<CommunityRanking>(
+      `/communities/${id}/rankings/`,
+      { params },
+    )
+    return response.data
+  },
+
+  async getCalendar(id: string): Promise<CalendarMatchDay[]> {
+    const response = await apiClient.get<CalendarMatchDay[]>(
+      `/communities/${id}/calendar/`,
+    )
+    return response.data
   },
 }

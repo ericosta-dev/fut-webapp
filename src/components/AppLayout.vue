@@ -6,14 +6,16 @@ import { useCommunitiesStore } from '@/stores/communities'
 import {
   LayoutDashboard,
   Users,
-  Trophy,
+  Home,
   UserCircle,
+  Settings,
   LogOut,
   ChevronDown,
   Menu,
   X,
   Plus,
   Zap,
+  Trophy,
 } from 'lucide-vue-next'
 import Avatar from '@/components/ui/Avatar.vue'
 import DropdownMenu from '@/components/ui/DropdownMenu.vue'
@@ -76,11 +78,17 @@ function clearCommunity() {
 const communityId = computed(() => communitiesStore.currentCommunity?.id ?? null)
 const communityLinksDisabled = computed(() => !communityId.value)
 
+const communityHomePath = computed(() =>
+  communityId.value ? `/communities/${communityId.value}` : '/communities',
+)
 const playersPath = computed(() =>
   communityId.value ? `/communities/${communityId.value}/players` : '/communities',
 )
-const leaguesPath = computed(() =>
-  communityId.value ? `/communities/${communityId.value}` : '/communities',
+const competitionsPath = computed(() =>
+  communityId.value ? `/communities/${communityId.value}/competitions` : '/communities',
+)
+const settingsPath = computed(() =>
+  communityId.value ? `/communities/${communityId.value}/settings` : '/communities',
 )
 
 const userName = computed(
@@ -138,21 +146,6 @@ const userName = computed(
           <span v-if="!isSidebarCollapsed">Dashboard</span>
         </router-link>
 
-        <!-- Communities -->
-        <router-link
-          to="/communities"
-          :class="[
-            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group',
-            isSidebarCollapsed ? 'justify-center' : '',
-          ]"
-          active-class="!bg-primary/10 !text-primary border-l-2 border-primary"
-          class="text-muted-foreground hover:bg-muted hover:text-foreground"
-          @click="isSidebarOpen = false"
-        >
-          <Users :size="20" class="shrink-0" />
-          <span v-if="!isSidebarCollapsed">Comunidades</span>
-        </router-link>
-
         <!-- Context Divider -->
         <template v-if="!isSidebarCollapsed">
           <div class="pt-4 pb-1">
@@ -164,6 +157,23 @@ const userName = computed(
         <template v-else>
           <Separator class="my-2" />
         </template>
+
+        <!-- Community Home -->
+        <router-link
+          :to="communityHomePath"
+          :class="[
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            isSidebarCollapsed ? 'justify-center' : '',
+            communityLinksDisabled
+              ? 'text-muted opacity-40 cursor-default pointer-events-none'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          ]"
+          :active-class="communityLinksDisabled ? '' : '!bg-primary/10 !text-primary border-l-2 border-primary'"
+          @click="isSidebarOpen = false"
+        >
+          <Home :size="20" class="shrink-0" />
+          <span v-if="!isSidebarCollapsed">Comunidade</span>
+        </router-link>
 
         <!-- Players -->
         <router-link
@@ -182,9 +192,9 @@ const userName = computed(
           <span v-if="!isSidebarCollapsed">Jogadores</span>
         </router-link>
 
-        <!-- Leagues -->
+        <!-- Competitions -->
         <router-link
-          :to="leaguesPath"
+          :to="competitionsPath"
           :class="[
             'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             isSidebarCollapsed ? 'justify-center' : '',
@@ -197,6 +207,23 @@ const userName = computed(
         >
           <Trophy :size="20" class="shrink-0" />
           <span v-if="!isSidebarCollapsed">Competições</span>
+        </router-link>
+
+        <!-- Community Settings -->
+        <router-link
+          :to="settingsPath"
+          :class="[
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            isSidebarCollapsed ? 'justify-center' : '',
+            communityLinksDisabled
+              ? 'text-muted opacity-40 cursor-default pointer-events-none'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          ]"
+          :active-class="communityLinksDisabled ? '' : '!bg-primary/10 !text-primary border-l-2 border-primary'"
+          @click="isSidebarOpen = false"
+        >
+          <Settings :size="20" class="shrink-0" />
+          <span v-if="!isSidebarCollapsed">Configurações</span>
         </router-link>
       </nav>
 

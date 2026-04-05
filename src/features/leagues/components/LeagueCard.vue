@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, Badge } from '@/components/ui'
-import { Calendar, Users, User } from 'lucide-vue-next'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  DropdownMenu,
+  DropdownMenuItem,
+} from '@/components/ui'
+import { Calendar, MoreVertical, Settings, User, Users } from 'lucide-vue-next'
 import type { LeagueList } from '../types'
 
 interface Props {
   league: LeagueList
 }
 
+interface Emits {
+  (e: 'configure', leagueId: string): void
+}
+
 const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 const statusVariant = computed(() => {
   if (props.league.is_active) return 'success'
@@ -38,9 +50,29 @@ const formattedEndDate = computed(() =>
     <CardContent class="p-6 space-y-4">
       <div class="flex justify-between items-start">
         <h3 class="text-xl font-semibold text-foreground">{{ league.name }}</h3>
-        <div class="flex gap-2">
-          <Badge :variant="formatVariant">{{ formatText }}</Badge>
-          <Badge :variant="statusVariant">{{ statusText }}</Badge>
+        <div class="flex items-start gap-2">
+          <div class="flex flex-wrap justify-end gap-2">
+            <Badge :variant="formatVariant">{{ formatText }}</Badge>
+            <Badge :variant="statusVariant">{{ statusText }}</Badge>
+          </div>
+
+          <DropdownMenu>
+            <template #trigger>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                class="text-muted-foreground hover:text-foreground"
+                @click.stop
+              >
+                <MoreVertical :size="16" />
+              </Button>
+            </template>
+
+            <DropdownMenuItem @click.stop="emit('configure', league.id)">
+              <Settings :size="14" />
+              Configurar liga
+            </DropdownMenuItem>
+          </DropdownMenu>
         </div>
       </div>
 

@@ -111,6 +111,22 @@ export interface PlayerStats {
   ranking: PlayerRanking
 }
 
+// Community ranking types
+export interface CommunityRanking {
+  top_goals: RankingEntry[]
+  top_assists: RankingEntry[]
+  total_players: number
+}
+
+export interface CalendarMatchDay {
+  id: string
+  date: string
+  label: string
+  league_id: string
+  league_name: string
+  status: string
+}
+
 // Auth types
 export interface LoginCredentials {
   username: string

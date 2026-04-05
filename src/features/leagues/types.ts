@@ -105,3 +105,24 @@ export interface LeagueStandings {
   standings: CupTeamStanding[]
   matchdays: MatchDaySummary[]
 }
+
+// LEAGUE format Player Standings
+export interface LeaguePlayerStandingEntry {
+  player_id: string
+  player_name: string
+  points: number
+  played: number
+  wins: number
+  draws: number
+  losses: number
+  goals: number
+  assists: number
+  goals_for: number
+  goals_against: number
+  goal_difference: number
+}
+
+export interface LeaguePlayerStandings {
+  player_standings: LeaguePlayerStandingEntry[]
+  matchdays: MatchDaySummary[]
+}
